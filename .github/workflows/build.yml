@@ -22,6 +22,10 @@ jobs:
 
       - name: Prepare web files
         run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          test -s index.html || { echo "ERROR: index.html is missing or empty"; exit 1; }
+          test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
           convert icon.png -resize 1024x1024^ -gravity center -background white -extent 1024x1024 assets/icon.png
