@@ -1,4 +1,4 @@
-name: Build BOK APK
+٧name: Build BOK APK
 
 on:
   workflow_dispatch:
@@ -46,6 +46,47 @@ jobs:
           sed -i 's|<style name="AppTheme.NoActionBarLaunch"[^>]*>|&\n        <item name="windowSplashScreenBackground">#FFFFFF</item>|' "$STYLES"
           cat "$STYLES"
           npx cap sync android
+
+      - name: Fullscreen and portrait
+        run: |
+          STYLES=android/app/src/main/res/values/styles.xml
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          # السماح للتطبيق بالامتداد خلف النتوء (notch)
+          sed -i 's|<style name="AppTheme.NoActionBar"[^>]*>|&\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>|' "$STYLES"
+          # اتجاه عمودي فقط
+          sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' "$MANIFEST"
+          # إخفاء شريط الحالة وأزرار النظام (ملء الشاشة الحقيقي)
+          cat > android/app/src/main/java/com/bok/app/MainActivity.java <<'JAVA'
+          package com.bok.app;
+
+          import android.os.Bundle;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  hideBars();
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) hideBars();
+              }
+
+              private void hideBars() {
+                  WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                  c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                  c.hide(WindowInsetsCompat.Type.systemBars());
+              }
+          }
+          JAVA
+          grep -n "screenOrientation" "$MANIFEST"
+          grep -n "CutoutMode" "$STYLES"
 
       - name: Build APK
         run: |
