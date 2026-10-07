@@ -1809,7 +1809,17 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       { sel: '#payBack', msg: 'التحميل' },
       { sel: '#cBack', msg: 'التحميل' },
       { sel: '#cCancel', msg: 'التحميل' },
-      { sel: '#cOk', msg: 'جاري تنفيذ التحويل', ok: () => (document.getElementById('cAmt').value || '').trim() }
+      { sel: '#cOk', msg: 'جاري تنفيذ التحويل', ok: () => (document.getElementById('cAmt').value || '').trim() },
+      // ===== حافظة المعاملات: فتحها + التنقل بين قائمتها وتفاصيلها + كل أزرار الإجراءات =====
+      { sel: '.app-item[data-go="tx"]', msg: 'التحميل', ok: () => { try { const a = JSON.parse(localStorage.getItem('tx-history-v1') || '[]'); return Array.isArray(a) && a.length > 0; } catch (e) { return false; } } },
+      { sel: '.tl-card', msg: 'التحميل' },
+      { sel: '#tlBack', msg: 'التحميل' },
+      { sel: '#txBack', msg: 'التحميل' },
+      { sel: '#txShare', msg: 'التحميل' },
+      { sel: '#txDown', msg: 'التحميل' },
+      { sel: '#txPrint', msg: 'التحميل' },
+      { sel: '#txRemind', msg: 'التحميل' },
+      { sel: '#txWrong', msg: 'التحميل' }
     ];
     document.addEventListener('click', e => {
       if (bypass) return;
@@ -2067,6 +2077,32 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) goFullscreen();
   });
+})();
+</script>
+<script>
+/* ===== زر Enter: ينتقل للحقل التالي إن وُجد، وإلا يُخفي الكيبورد ===== */
+(function () {
+  // الحقل التالي لكل حقل (الحقول غير المذكورة هي الأخيرة في شاشتها فيُغلق الكيبورد)
+  var NEXT = { userId: 'password', cAmt: 'cNote' };
+  var ALL = ['userId', 'password', 'payInput', 'cAmt', 'cNote'];
+
+  function visible(el) { return el && el.offsetParent !== null && !el.disabled; }
+
+  // تغيير شكل زر Enter في الكيبورد: «التالي» أو «تم»
+  ALL.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.setAttribute('enterkeyhint', NEXT[id] ? 'next' : 'done');
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.keyCode !== 13) return;
+    var el = e.target;
+    if (!el || !el.id || ALL.indexOf(el.id) < 0) return;
+    e.preventDefault();
+    var nxt = NEXT[el.id] && document.getElementById(NEXT[el.id]);
+    if (visible(nxt)) { nxt.focus(); }
+    else { el.blur(); }
+  }, true);
 })();
 </script>
 </body>
