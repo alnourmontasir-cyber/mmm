@@ -1,0 +1,9 @@
+{
+  "name": "BOK",
+  "short_name": "BOK",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f50000",
+  "theme_color": "#f50000"
+}

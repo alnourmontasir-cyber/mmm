@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=688, user-scalable=no, viewport-fit=cover">
 <title>BOK</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#f50000">
+<meta name="mobile-web-app-capable" content="yes">
+<!-- iOS: يجعل الصفحة تفتح بدون شريط المتصفح عند إضافتها للشاشة الرئيسية -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BOK">
 <style>
   /* التصميم مبني على أبعاد الصورة الأصلية بالضبط: 688 × 1540 بكسل، ثم يُكبَّر/يُصغَّر ليناسب الشاشة */
   /* ===== رفع الدقة: عرض أوضح للنصوص والصور والرسومات ===== */
@@ -2038,6 +2045,28 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   document.getElementById('txPrint').addEventListener('click', () => toast('قريباً...'));
   document.getElementById('txRemind').addEventListener('click', () => toast('تم ضبط التذكير'));
   document.getElementById('txWrong').addEventListener('click', () => toast('تم إرسال طلب تحويل خاطئ'));
+})();
+</script>
+<script>
+/* ===== محاولة فتح الوضع ملء الشاشة تلقائيًا في المتصفح ===== */
+(function () {
+  function goFullscreen() {
+    var el = document.documentElement;
+    try {
+      if (document.fullscreenElement || document.webkitFullscreenElement) return;
+      if (el.requestFullscreen) el.requestFullscreen().catch(function () {});
+      else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+      else if (el.msRequestFullscreen) el.msRequestFullscreen();
+    } catch (e) {}
+  }
+  // المتصفحات تمنع ملء الشاشة بدون تفاعل مستخدم، فنربطه بأول لمسة/ضغطة
+  ['touchstart', 'pointerdown', 'click'].forEach(function (ev) {
+    document.addEventListener(ev, goFullscreen, { once: true, passive: true });
+  });
+  // إعادة المحاولة إذا رجع المستخدم للصفحة (مثلاً بعد تبديل التطبيقات)
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) goFullscreen();
+  });
 })();
 </script>
 </body>
