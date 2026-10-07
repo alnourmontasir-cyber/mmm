@@ -1,4 +1,4 @@
-٨name: Build BOK APK
+name: Build BOK APK
 
 on:
   workflow_dispatch:
