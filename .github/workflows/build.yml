@@ -35,8 +35,16 @@ jobs:
           npm init -y
           npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/assets@3
           npx cap init BOK com.bok.app --web-dir=www
+          node -e "const fs=require('fs');const f='capacitor.config.json';const c=JSON.parse(fs.readFileSync(f,'utf8'));c.backgroundColor='#FFFFFF';fs.writeFileSync(f,JSON.stringify(c,null,2))"
           npx cap add android
           npx capacitor-assets generate --android
+
+      - name: White splash and light theme
+        run: |
+          STYLES=android/app/src/main/res/values/styles.xml
+          sed -i 's/Theme.AppCompat.DayNight/Theme.AppCompat.Light/g' "$STYLES"
+          sed -i 's|<style name="AppTheme.NoActionBarLaunch"[^>]*>|&\n        <item name="windowSplashScreenBackground">#FFFFFF</item>|' "$STYLES"
+          cat "$STYLES"
           npx cap sync android
 
       - name: Build APK
@@ -49,3 +57,4 @@ jobs:
         with:
           name: BOK-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          
