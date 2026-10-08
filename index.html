@@ -294,8 +294,7 @@
     font-family:"Noto Sans Arabic","Droid Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.22);
     opacity:0; pointer-events:none; transition:opacity .22s, transform .22s; }
   #fillToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  #fillToast .ft-logo { flex:none; width:30px; height:30px; border-radius:50%; background:#e11d24; display:flex; align-items:center; justify-content:center; box-shadow:0 0 0 4px #fbe9ea; }
-  #fillToast .ft-logo svg { width:20px; height:20px; display:block; }
+  #fillToast .ft-logo { flex:none; width:30px; height:30px; border-radius:8px; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; }
   html, body, .viewport, .frame, #loginScreen, #homeScreen, #payScreen, #transferScreen, #confirmScreen, #receiptScreen, #txScreen, #acctScreen, #txListScreen { overflow: clip !important; }
   #loginScreen #togglePass, #togglePass { touch-action:none; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
 
@@ -1160,39 +1159,54 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     const vv = window.visualViewport;
     let kbShift = 0;
     const SHIFT_IDS = { cAmt: 1 };
-    // لا نلمس الشاشة نهائيًا ما لم تكن شاشة المبلغ مرفوعة
+    const confEl = document.getElementById('confirmScreen');
+    // نرفع الشاشة بمقدار kbShift فقط؛ لا نلمسها إطلاقًا ما لم تكن شاشة المبلغ مفتوحة الكيبورد
     const apply = () => {
       if (!kbShift) {
         if (viewport.style.transform) viewport.style.transform = '';
         root.style.background = ''; body.style.background = '';
         return;
       }
-      const x = vv ? vv.offsetLeft : 0, y = (vv ? vv.offsetTop : 0) - kbShift;
-      viewport.style.transform = 'translate(' + x + 'px,' + y + 'px)';
-      // المساحة التي تُخلى أسفل الشاشة بعد الرفع تأخذ لون خلفية الشاشة (بدل الأحمر)
-      root.style.background = '#f8f8f8'; body.style.background = '#f8f8f8';
+      viewport.style.transform = 'translate(0px,' + (-kbShift) + 'px)';
+      root.style.background = '#f8f8f8'; body.style.background = '#f8f8f8';   // لون الشاشة بدل الأحمر في الفراغ السفلي
     };
-    const calc = (fallback) => {
+    // حلقة ضبط: نقيس موضع صندوق المبلغ الفعلي على الشاشة ونصحّح الإزاحة حتى يستقر فوق الكيبورد مباشرة
+    // (تعمل مهما كانت الطريقة التي يحرّك بها المتصفح الصفحة من نفسه)
+    const settle = (fallback) => {
       const a = document.activeElement;
-      const confEl = document.getElementById('confirmScreen');
-      if (confEl) confEl.classList.toggle('kb-open', !!(a && SHIFT_IDS[a.id]));
-      if (!a || !SHIFT_IDS[a.id]) { if (kbShift) { kbShift = 0; apply(); } return; }
-      // نقيس موضع الحقل بدون أي إزاحة حالية حتى لا تتراكم الأخطاء
-      const prev = viewport.style.transform; viewport.style.transform = '';
+      const on = !!(a && SHIFT_IDS[a.id]);
+      if (confEl) confEl.classList.toggle('kb-open', on);
+      if (!on) { if (kbShift) { kbShift = 0; apply(); } return false; }
       const r = a.getBoundingClientRect();
-      viewport.style.transform = prev;
-      const B = r.bottom;
+      const offTop = vv ? vv.offsetTop : 0;
       let visH = vv ? vv.height : window.innerHeight;
       if (fallback && visH > window.innerHeight * 0.9) visH = window.innerHeight * 0.64; // الكيبورد لم يُصغّر الصفحة
-      const margin = r.height * 0.3;
-      kbShift = Math.max(0, Math.round(B - (visH - margin)));
-      apply();
+      const target = visH - r.height * 0.3;       // أسفل الصندوق قرب أعلى الكيبورد مباشرة
+      const E = r.bottom - offTop;                // موضع أسفل الصندوق الآن على الشاشة
+      const err = E - target;
+      if (Math.abs(err) > 1.5) {
+        kbShift = Math.max(-offTop, Math.round(kbShift + err));
+        apply();
+        return true;
+      }
+      return false;
     };
-    document.addEventListener('focusin', () => { calc(false); setTimeout(() => calc(false), 200); setTimeout(() => calc(true), 450); });
-    document.addEventListener('focusout', () => setTimeout(() => calc(false), 60));
+    let loop = null;
+    const run = (fallbackAfter) => {
+      clearInterval(loop); let n = 0;
+      loop = setInterval(() => {
+        n++;
+        settle(n * 70 > fallbackAfter);
+        if (n >= 22) clearInterval(loop);
+      }, 70);
+      settle(false);
+    };
+    document.addEventListener('focusin', () => run(500));
+    document.addEventListener('focusout', () => setTimeout(() => { settle(false); }, 60));
     if (vv) {
-      vv.addEventListener('scroll', () => { if (kbShift) apply(); });
-      vv.addEventListener('resize', () => { if (kbShift || SHIFT_IDS[(document.activeElement || {}).id]) calc(false); });
+      let raf = 0;
+      const onVV = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; settle(false); }); };
+      vv.addEventListener('scroll', onVV); vv.addEventListener('resize', onVV);
     }
   })();
 
@@ -1232,7 +1246,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   (function () {
     const t = document.createElement('div');
     t.id = 'fillToast'; t.setAttribute('role', 'alert');
-    t.innerHTML = '<span class="ft-logo"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 11.5c0-3 2-5 5-5 2.6 0 4.2 1.4 4.2 3.7 0 2.4-1.8 4.1-4.5 4.1H6" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><path d="M13 4.5c1.6.4 2.8 1.6 3.2 3.2" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/></svg></span><span>يجب تعبئة جميع الحقول.</span>';
+    t.innerHTML = '<img class="ft-logo" alt="" draggable="false" src="icon-180.png" onerror="this.style.display=\'none\'"><span>يجب تعبئة جميع الحقول.</span>';
     document.getElementById('frame').appendChild(t);
     let tt;
     window.showFillToast = function () {
