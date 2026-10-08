@@ -294,7 +294,8 @@
     font-family:"Noto Sans Arabic","Droid Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif; box-shadow:0 4px 16px rgba(0,0,0,.22);
     opacity:0; pointer-events:none; transition:opacity .22s, transform .22s; }
   #fillToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
-  #fillToast .ft-logo { flex:none; width:30px; height:30px; border-radius:8px; object-fit:cover; display:block; pointer-events:none; -webkit-user-drag:none; }
+  #fillToast .ft-logo { flex:none; width:34px; height:34px; border-radius:50%; background:#f6f6f6; display:flex; align-items:center; justify-content:center; }
+  #fillToast .ft-logo img { width:21px; height:21px; display:block; pointer-events:none; -webkit-user-drag:none; }
   html, body, .viewport, .frame, #loginScreen, #homeScreen, #payScreen, #transferScreen, #confirmScreen, #receiptScreen, #txScreen, #acctScreen, #txListScreen { overflow: clip !important; }
   #loginScreen #togglePass, #togglePass { touch-action:none; -webkit-touch-callout:none; user-select:none; -webkit-user-select:none; }
 
@@ -1144,7 +1145,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   // كل شاشة لها ضبطها الخاص: نعيد التطبيق عند الانتقال
   Object.keys(SCREEN_IDS).forEach(id => { const el = document.getElementById(id); if (el) new MutationObserver(fit).observe(el, { attributes: true, attributeFilter: ['style'] }); });
 
-  // تثبيت الشاشة: لا تتحرك أي شاشة عند ظهور/إخفاء الكيبورد (إلا شاشة المبلغ فتُرفع فوق الكيبورد)
+  // تثبيت الشاشة: لا تتحرك أي شاشة عند ظهور/إخفاء الكيبورد
   (function () {
     const root = document.documentElement, body = document.body;
     const lockEls = [root, body, viewport, frame];
@@ -1156,58 +1157,11 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     window.addEventListener('scroll', reset, { passive: true });
     lockEls.forEach(e => e.addEventListener('scroll', reset, { passive: true }));
 
-    const vv = window.visualViewport;
-    let kbShift = 0;
-    const SHIFT_IDS = { cAmt: 1 };
+    // لا نرفع/نحرّك أي شاشة. فقط نُخفي زري «إلغاء/تأكيد» أثناء الكتابة في خانة المبلغ.
     const confEl = document.getElementById('confirmScreen');
-    // نرفع الشاشة بمقدار kbShift فقط؛ لا نلمسها إطلاقًا ما لم تكن شاشة المبلغ مفتوحة الكيبورد
-    const apply = () => {
-      if (!kbShift) {
-        if (viewport.style.transform) viewport.style.transform = '';
-        root.style.background = ''; body.style.background = '';
-        return;
-      }
-      viewport.style.transform = 'translate(0px,' + (-kbShift) + 'px)';
-      root.style.background = '#f8f8f8'; body.style.background = '#f8f8f8';   // لون الشاشة بدل الأحمر في الفراغ السفلي
-    };
-    // حلقة ضبط: نقيس موضع صندوق المبلغ الفعلي على الشاشة ونصحّح الإزاحة حتى يستقر فوق الكيبورد مباشرة
-    // (تعمل مهما كانت الطريقة التي يحرّك بها المتصفح الصفحة من نفسه)
-    const settle = (fallback) => {
-      const a = document.activeElement;
-      const on = !!(a && SHIFT_IDS[a.id]);
-      if (confEl) confEl.classList.toggle('kb-open', on);
-      if (!on) { if (kbShift) { kbShift = 0; apply(); } return false; }
-      const r = a.getBoundingClientRect();
-      const offTop = vv ? vv.offsetTop : 0;
-      let visH = vv ? vv.height : window.innerHeight;
-      if (fallback && visH > window.innerHeight * 0.9) visH = window.innerHeight * 0.64; // الكيبورد لم يُصغّر الصفحة
-      const target = visH - r.height * 0.3;       // أسفل الصندوق قرب أعلى الكيبورد مباشرة
-      const E = r.bottom - offTop;                // موضع أسفل الصندوق الآن على الشاشة
-      const err = E - target;
-      if (Math.abs(err) > 1.5) {
-        kbShift = Math.max(-offTop, Math.round(kbShift + err));
-        apply();
-        return true;
-      }
-      return false;
-    };
-    let loop = null;
-    const run = (fallbackAfter) => {
-      clearInterval(loop); let n = 0;
-      loop = setInterval(() => {
-        n++;
-        settle(n * 70 > fallbackAfter);
-        if (n >= 22) clearInterval(loop);
-      }, 70);
-      settle(false);
-    };
-    document.addEventListener('focusin', () => run(500));
-    document.addEventListener('focusout', () => setTimeout(() => { settle(false); }, 60));
-    if (vv) {
-      let raf = 0;
-      const onVV = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; settle(false); }); };
-      vv.addEventListener('scroll', onVV); vv.addEventListener('resize', onVV);
-    }
+    const syncKb = () => { const a = document.activeElement; if (confEl) confEl.classList.toggle('kb-open', !!(a && a.id === 'cAmt')); };
+    document.addEventListener('focusin', syncKb);
+    document.addEventListener('focusout', () => setTimeout(syncKb, 60));
   })();
 
   // لا نعيد الحساب عند كل "resize" لأن فتح لوحة المفاتيح على الجوال يطلق هذا
@@ -1246,7 +1200,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   (function () {
     const t = document.createElement('div');
     t.id = 'fillToast'; t.setAttribute('role', 'alert');
-    t.innerHTML = '<img class="ft-logo" alt="" draggable="false" src="icon-180.png" onerror="this.style.display=\'none\'"><span>يجب تعبئة جميع الحقول.</span>';
+    t.innerHTML = '<span class="ft-logo"><img alt="" draggable="false"></span><span>يجب تعبئة جميع الحقول.</span>';
+    const srcImg = document.querySelector('#rSoon .rs-logo img');
+    if (srcImg) t.querySelector('img').src = srcImg.src; else t.querySelector('.ft-logo').style.display = 'none';
     document.getElementById('frame').appendChild(t);
     let tt;
     window.showFillToast = function () {
@@ -2244,7 +2200,13 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   var el = document.documentElement;
   function isFull() { return !!(document.fullscreenElement || document.webkitFullscreenElement); }
   function standalone() { return window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || window.navigator.standalone; }
-  function goFullscreen() {
+  function typing(e) {
+    var a = document.activeElement, t = e && e.target;
+    return !!((a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')) || (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')));
+  }
+  function goFullscreen(e) {
+    // لا نطلب ملء الشاشة أثناء الكتابة: تغيّر وضع الشاشة يُغلق الكيبورد (كان يحدث عند أول حرف)
+    if (typing(e)) return;
     if (isFull() || standalone()) return;
     try {
       var p = el.requestFullscreen ? el.requestFullscreen({ navigationUI: 'hide' }) : (el.webkitRequestFullscreen && el.webkitRequestFullscreen());
@@ -2253,7 +2215,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   }
   // لا نستعمل once: المحاولة تتكرر مع كل لمسة حتى ينجح الدخول (touchend/pointerup/click هي الأحداث المعتمدة من المتصفح)
   // نستعمل capture لأن شاشة التحميل توقف انتشار النقرات قبل وصولها للأسفل
-  ['touchend', 'pointerup', 'click', 'keydown'].forEach(function (ev) {
+  ['touchend', 'pointerup', 'click'].forEach(function (ev) {
     document.addEventListener(ev, goFullscreen, { capture: true, passive: true });
   });
   document.addEventListener('visibilitychange', function () { if (!document.hidden) goFullscreen(); });
