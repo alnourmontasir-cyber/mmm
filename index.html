@@ -2,7 +2,7 @@
 <html lang="ar" dir="rtl" class="splash-on">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=688, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=688, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-visual">
 <title>BOK</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -34,10 +34,13 @@
     background: #f50000;
     font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
     overflow: hidden;
+    position: fixed; left: 0; top: 0; width: 100%;
+    overscroll-behavior: none;
   }
-  body { display: flex; align-items: center; justify-content: center; }
+  /* لا توسيط عمودي: التوسيط كان يحرّك الشاشة للأعلى عند ظهور الكيبورد لأن ارتفاع الصفحة يصغر */
+  body { display: block; }
 
-  .viewport { position: relative; overflow: hidden; background: #f9f9f9; }
+  .viewport { position: absolute; left: 0; top: 0; overflow: hidden; background: #f9f9f9; }
 
   .frame {
     position: absolute; left: 0; top: 0;
@@ -391,7 +394,7 @@
   /* القيم الطويلة (الحساب/الاسم/التعليق): نفس حجم الخط، وما زاد ينزل إلى سطر جديد والصف يكبر تلقائيًا */
   #rCard .r-row.r-wrap { height:auto; min-height:88.6px; padding-top:19px; padding-bottom:19px; }
   #rCard .r-row.r-wrap .r-value { white-space:normal; overflow:visible; text-overflow:clip; max-width:350px; line-height:1.3; overflow-wrap:anywhere; text-align:left; }
-  #rCard .r-row.r-name .r-value { font-size:35px; max-width:350px; line-height:1.3; }
+  #rCard .r-row.r-name .r-value { font-size:38px; max-width:350px; line-height:1.3; }
   #rOk { left:324px; top:1547px; width:224px; height:101px; box-sizing:border-box; padding:0; cursor:pointer;
     border:4px solid #f6faf7; border-radius:17px; color:#fff; font-family:inherit; font-size:31.5px; font-weight:600;
     text-shadow:0 2px 3px rgba(0,50,0,.45);
@@ -1104,7 +1107,10 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     const s = Math.max(sx, sy); return { bx: s, by: s };
   }
   function fit() {
-    const vw = window.innerWidth, vh = window.innerHeight, b = baseScales(vw, vh), v = views[curScreenKey()];
+    const a0 = document.activeElement, typing0 = a0 && (a0.tagName === 'INPUT' || a0.tagName === 'TEXTAREA');
+    // أثناء ظهور الكيبورد نحافظ على الارتفاع الكامل حتى لا تتغير أبعاد الشاشة
+    if (!typing0 || !window.__stableH || window.innerWidth !== window.__stableW) { window.__stableH = window.innerHeight; window.__stableW = window.innerWidth; }
+    const vw = window.innerWidth, vh = window.__stableH, b = baseScales(vw, vh), v = views[curScreenKey()];
     const ex = b.bx * v.z * v.sx, ey = b.by * v.z * v.sy;
     viewport.style.width = vw + 'px'; viewport.style.height = vh + 'px';
     const dpr = window.devicePixelRatio || 1, snap = n => Math.round(n * dpr) / dpr;
@@ -1121,6 +1127,23 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   });
   // كل شاشة لها ضبطها الخاص: نعيد التطبيق عند الانتقال
   Object.keys(SCREEN_IDS).forEach(id => { const el = document.getElementById(id); if (el) new MutationObserver(fit).observe(el, { attributes: true, attributeFilter: ['style'] }); });
+
+  // تثبيت الشاشة: لا تتحرك أي شاشة عند ظهور/إخفاء الكيبورد
+  (function () {
+    const lockEls = [document.documentElement, document.body, viewport, frame];
+    const reset = () => { window.scrollTo(0, 0); lockEls.forEach(e => { if (e.scrollTop) e.scrollTop = 0; if (e.scrollLeft) e.scrollLeft = 0; }); };
+    window.addEventListener('scroll', reset, { passive: true });
+    lockEls.forEach(e => e.addEventListener('scroll', reset, { passive: true }));
+    // إن حرّك المتصفح الرؤية لأعلى ليُظهر الحقل، نعيد الشاشة لمكانها بإزاحة معاكسة
+    if (window.visualViewport) {
+      const vv = window.visualViewport;
+      const hold = () => {
+        const x = vv.offsetLeft, y = vv.offsetTop;
+        viewport.style.transform = (y > 0.5 || x > 0.5) ? 'translate(' + x + 'px,' + y + 'px)' : '';
+      };
+      vv.addEventListener('scroll', hold); vv.addEventListener('resize', hold);
+    }
+  })();
 
   // لا نعيد الحساب عند كل "resize" لأن فتح لوحة المفاتيح على الجوال يطلق هذا
   // الحدث ويحرّك الأزرار أثناء الكتابة. نكتفي بإعادة الحساب عند تدوير الشاشة.
@@ -2067,7 +2090,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       const c = document.createElement('div'); c.className = 'tl-card'; c.setAttribute('role', 'button'); c.tabIndex = 0;
       const digits = String(t.to || '').replace(/\s/g, '');
       const isOtherBank = !/^\d{16}$/.test(digits);
-      const ico = isOtherBank ? OTHER_BANK : BANK;
+      const ico = BANK; // كل المعاملات بالأيقونة البيضاء (بدون الأيقونة الخضراء)
       const desc = isOtherBank ? 'تحويل لبنك آخر , الرقم المرجعي #' : 'تحويل إلى حسابات آخرى برقم';
       c.innerHTML = '<div class="tl-ico">' + ico + '</div><div class="tl-amt"></div><div class="tl-date"></div><div class="tl-desc">' + desc + '</div><div class="tl-num"></div>';
       c.querySelector('.tl-amt').textContent = 'SDG. ' + t.amount;
