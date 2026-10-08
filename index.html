@@ -1681,10 +1681,11 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     let closing = false;
     function closeReceipt() {
       if (closing) return; closing = true;
+      window.__receiptSlide = true;
       const tr = document.getElementById('transferScreen');
       tr.style.display = 'block';
       const opt = { duration: 340, easing: 'cubic-bezier(.4,0,.2,1)' };
-      const finish = () => { screen.style.display = 'none'; closing = false; };
+      const finish = () => { screen.style.display = 'none'; closing = false; setTimeout(() => { window.__receiptSlide = false; }, 50); };
       try {
         tr.animate([{ transform: 'translateX(-100%)' }, { transform: 'translateX(0)' }], opt);
         const a = screen.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(100%)' }], Object.assign({ fill: 'forwards' }, opt));
@@ -2245,6 +2246,68 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     if (visible(nxt)) { nxt.focus(); }
     else { el.blur(); }
   }, true);
+})();
+</script>
+<script>
+/* ===== انتقالات الشاشات: كل دخول أو خروج يتحرك من اليمين إلى اليسار =====
+   - الشاشة الجديدة تدخل من اليمين، والشاشة القديمة تخرج نحو اليسار.
+   - تبدأ الحركة مباشرة بعد اكتمال شاشة التحميل (لحظة تغيير الشاشة فعليًا). */
+(function () {
+  var IDS = ['loginScreen','homeScreen','transferScreen','payScreen','confirmScreen','receiptScreen','txListScreen','txScreen','acctScreen'];
+  var T = 350, EASE = 'cubic-bezier(.4,0,.2,1)';
+  var state = {};
+  function vis(el) { return getComputedStyle(el).display !== 'none'; }
+
+  function slideIn(el) {
+    var prevZ = el.style.zIndex;
+    el.style.zIndex = '600';
+    try {
+      var a = el.animate([{ transform: 'translateX(100%)' }, { transform: 'translateX(0)' }], { duration: T, easing: EASE });
+      a.onfinish = a.oncancel = function () { el.style.zIndex = prevZ; };
+    } catch (e) { el.style.zIndex = prevZ; }
+  }
+
+  function slideOut(el) {
+    // الشاشة أُخفيت للتو: نعرض نسخة مرئية منها تخرج نحو اليسار ثم تُحذف
+    var ghost = el.cloneNode(true);
+    ghost.style.display = 'block';
+    ghost.style.zIndex = '599';
+    ghost.style.pointerEvents = 'none';
+    ghost.setAttribute('aria-hidden', 'true');
+    var o = el.querySelectorAll('input,textarea'), g = ghost.querySelectorAll('input,textarea');
+    for (var i = 0; i < o.length && i < g.length; i++) { g[i].value = o[i].value; }
+    el.parentNode.appendChild(ghost);
+    var rm = function () { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); };
+    try {
+      var a = ghost.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-100%)' }], { duration: T, easing: EASE, fill: 'forwards' });
+      a.onfinish = rm; a.oncancel = rm;
+    } catch (e) { rm(); }
+  }
+
+  var mo = new MutationObserver(function (list) {
+    var seen = [];
+    list.forEach(function (r) { if (seen.indexOf(r.target) < 0) seen.push(r.target); });
+    var outs = [], ins = [];
+    if (window.__receiptSlide || seen.some(function (e) { return e.id === 'receiptScreen'; })) {
+      seen.forEach(function (el) { state[el.id] = vis(el); });
+      return;
+    }
+    seen.forEach(function (el) {
+      var now = vis(el), was = state[el.id];
+      if (was === now) return;
+      state[el.id] = now;
+      (now ? ins : outs).push(el);
+    });
+    outs.forEach(slideOut);
+    ins.forEach(slideIn);
+  });
+
+  IDS.forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    state[id] = vis(el);
+    mo.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
 })();
 </script>
 </body>
