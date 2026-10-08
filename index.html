@@ -639,7 +639,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     <!-- رقم المعرف -->
     <div class="field" id="f1">
       <label for="userId">أدخل رقم المعرف (رقم الحساب أو 249-رقم الهاتف)</label>
-      <input id="userId" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="username">
+      <input id="userId" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" data-lpignore="true" data-1p-ignore>
       <svg class="ico-user" viewBox="0 0 56 40" fill="none" stroke="#555" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
         <path d="M2 8h14M2 17h10M2 26h8"/>
         <circle cx="38" cy="13" r="8"/>
@@ -649,7 +649,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 
     <!-- كلمة المرور -->
     <div class="field" id="f2">
-      <input id="password" type="password" placeholder="ادخل كلمة المرور" autocomplete="current-password">
+      <input id="password" type="password" placeholder="ادخل كلمة المرور" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore>
       <img class="pwd-ph" alt="" draggable="false" src="data:image/png;base64,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">
       <button class="eye-btn" id="togglePass" type="button" aria-label="إظهار كلمة المرور">
         <svg viewBox="0 0 58 48" fill="none" stroke="#444" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
@@ -1142,39 +1142,52 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   // كل شاشة لها ضبطها الخاص: نعيد التطبيق عند الانتقال
   Object.keys(SCREEN_IDS).forEach(id => { const el = document.getElementById(id); if (el) new MutationObserver(fit).observe(el, { attributes: true, attributeFilter: ['style'] }); });
 
-  // تثبيت الشاشة: لا تتحرك أي شاشة عند ظهور/إخفاء الكيبورد
+  // تثبيت الشاشة: لا تتحرك أي شاشة عند ظهور/إخفاء الكيبورد (إلا شاشة المبلغ فتُرفع فوق الكيبورد)
   (function () {
-    const lockEls = [document.documentElement, document.body, viewport, frame];
-    const reset = () => { window.scrollTo(0, 0); lockEls.forEach(e => { if (e.scrollTop) e.scrollTop = 0; if (e.scrollLeft) e.scrollLeft = 0; }); };
+    const root = document.documentElement, body = document.body;
+    const lockEls = [root, body, viewport, frame];
+    // نصفّر التمرير فقط إن حدث فعلًا (حتى لا نتدخل في عمل الكيبورد أثناء الكتابة)
+    const reset = () => {
+      if (window.scrollX || window.scrollY) window.scrollTo(0, 0);
+      lockEls.forEach(e => { if (e.scrollTop) e.scrollTop = 0; if (e.scrollLeft) e.scrollLeft = 0; });
+    };
     window.addEventListener('scroll', reset, { passive: true });
     lockEls.forEach(e => e.addEventListener('scroll', reset, { passive: true }));
-    // إزاحة الشاشة (kbShift) تُستخدم فقط في شاشة المبلغ لرفعها فوق الكيبورد؛ باقي الشاشات لا تتحرك أبدًا
+
     const vv = window.visualViewport;
     let kbShift = 0;
     const SHIFT_IDS = { cAmt: 1, cNote: 1 };
+    // لا نلمس الشاشة نهائيًا ما لم تكن شاشة المبلغ مرفوعة
     const apply = () => {
+      if (!kbShift) {
+        if (viewport.style.transform) viewport.style.transform = '';
+        root.style.background = ''; body.style.background = '';
+        return;
+      }
       const x = vv ? vv.offsetLeft : 0, y = (vv ? vv.offsetTop : 0) - kbShift;
-      const panned = vv && (vv.offsetTop > 0.5 || vv.offsetLeft > 0.5);
-      viewport.style.transition = panned ? 'none' : 'transform .2s ease';
-      viewport.style.transform = (Math.abs(x) > 0.5 || Math.abs(y) > 0.5) ? 'translate(' + x + 'px,' + y + 'px)' : '';
+      viewport.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+      // المساحة التي تُخلى أسفل الشاشة بعد الرفع تأخذ لون خلفية الشاشة (بدل الأحمر)
+      root.style.background = '#f8f8f8'; body.style.background = '#f8f8f8';
     };
     const calc = (fallback) => {
       const a = document.activeElement;
       if (!a || !SHIFT_IDS[a.id]) { if (kbShift) { kbShift = 0; apply(); } return; }
+      // نقيس موضع الحقل بدون أي إزاحة حالية حتى لا تتراكم الأخطاء
+      const prev = viewport.style.transform; viewport.style.transform = '';
       const r = a.getBoundingClientRect();
-      const ty = (vv ? vv.offsetTop : 0) - kbShift;      // الإزاحة المطبقة حاليًا
-      const B = r.bottom - ty;                            // أسفل الحقل بدون أي إزاحة
+      viewport.style.transform = prev;
+      const B = r.bottom;
       let visH = vv ? vv.height : window.innerHeight;
-      if (fallback && visH > window.innerHeight * 0.9) visH = window.innerHeight * 0.56; // الكيبورد لم يُصغّر الصفحة
+      if (fallback && visH > window.innerHeight * 0.9) visH = window.innerHeight * 0.64; // الكيبورد لم يُصغّر الصفحة
       const margin = r.height * 0.9;
       kbShift = Math.max(0, Math.round(B - (visH - margin)));
       apply();
     };
-    document.addEventListener('focusin', () => { calc(false); setTimeout(() => calc(false), 150); setTimeout(() => calc(true), 380); });
+    document.addEventListener('focusin', () => { calc(false); setTimeout(() => calc(false), 200); setTimeout(() => calc(true), 450); });
     document.addEventListener('focusout', () => setTimeout(() => calc(false), 60));
     if (vv) {
-      vv.addEventListener('scroll', apply);
-      vv.addEventListener('resize', () => { apply(); calc(false); });
+      vv.addEventListener('scroll', () => { if (kbShift) apply(); });
+      vv.addEventListener('resize', () => { if (kbShift || SHIFT_IDS[(document.activeElement || {}).id]) calc(false); });
     }
   })();
 
