@@ -629,6 +629,47 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   100%    { clip-path:inset(0 0 0 0); }    /* k */
 }
 </style>
+
+<style>
+/* ===== شاشة «مستفيد آخر / إضافة» ===== */
+#addBenScreen { position:absolute; left:0; top:0; width:688px; height:1540px; display:none; overflow:hidden; background:#f8f8f8; direction:rtl;
+  font-family:"Noto Sans Arabic","Droid Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif; -webkit-user-select:none; user-select:none; }
+#addBenScreen .abs { position:absolute; }
+#addBenScreen img.abs { pointer-events:none; -webkit-user-drag:none; }
+#addBenScreen .tx-logo { left:262.5px; top:79.2px; width:193.6px; height:93.8px; }
+#addBenScreen .tx-back2 { left:538.3px; top:194.7px; width:143.3px; height:81.1px; }
+#addBenScreen .p-back { background:none !important; border-color:transparent !important; box-shadow:none !important; z-index:2; }
+#addBenScreen .p-status { height:68.3px; background:#d42127; }
+#addBenScreen .p-status2, #addBenScreen .p-under { display:none !important; }
+#addBenScreen .p-header { top:68.3px; height:114.9px; border:0 !important; border-radius:0 !important; box-shadow:none !important;
+  background:linear-gradient(180deg,#fd0100 0,#be2528 100%) !important; }
+#addBenScreen .p-burger { filter:none; }
+#addBenScreen .ab-title { left:0; top:211.2px; width:510px; text-align:center; font-size:35px; font-weight:500; color:#201e1f; line-height:50px; }
+#addBenScreen .ab-bar-txt { left:0; top:288px; width:688px; height:96px; line-height:96px; text-align:center; color:#fff; font-size:42px; font-weight:700;
+  text-shadow:0 2px 1.5px rgba(110,0,0,.55); pointer-events:none; }
+#addBenScreen .ab-card { left:0; width:688px; box-sizing:border-box; background:#fefefe; border:1.3px solid #a9a9a9; border-radius:11px; }
+#abCard1 { top:441px; height:402px; }
+#abCard2 { top:882px; height:116px; }
+#abCard3 { top:1039px; height:124px; }
+#addBenScreen .ab-lbl { position:absolute; height:40px; line-height:40px; font-size:32px; font-weight:600; color:#3a3a3a; white-space:nowrap; }
+#addBenScreen .ab-val { position:absolute; right:243px; height:40px; line-height:40px; font-size:30px; font-weight:400; color:#555; white-space:nowrap;
+  direction:rtl; text-align:right; transform-origin:100% 50%; }
+#addBenScreen .ab-in { position:absolute; left:104px; width:552px; border:none; outline:none; background:transparent; direction:rtl; text-align:right;
+  font-family:inherit; color:#444; padding:0; margin:0; caret-color:#444; -webkit-user-select:text; user-select:text; }
+#abName { top:882px; height:116px; font-size:35px; }
+#abName::placeholder { color:#6a6a6a; opacity:1; }
+#abPhone { top:1076px; height:56px; font-size:42px; color:#333; }
+#addBenScreen .ab-phone-lbl { right:30px; top:1049px; width:520px; text-align:right; font-size:22px; line-height:30px; color:#666; }
+#addBenScreen .ab-btn { top:1193px; width:210px; height:92px; border-radius:12px; cursor:pointer; padding:0; font-family:inherit; font-size:35px; font-weight:500; color:#fff;
+  border:1.6px solid #c43d3e; text-shadow:0 1px 1px rgba(90,0,0,.35);
+  background:linear-gradient(180deg,#f39a9b 0,#e94b4d 16%,#e5191c 42%,#ea0a0a 70%,#f20404 100%);
+  box-shadow:0 1px 2px rgba(120,0,0,.25), inset 0 1px 1px rgba(255,255,255,.55); }
+#addBenScreen .ab-btn:active { filter:brightness(.93); }
+#abCancel { left:105px; } #abAdd { left:373px; }
+#abToast { position:absolute; left:50%; bottom:150px; transform:translateX(-50%) translateY(16px); background:#2b2b2b; color:#fff; padding:16px 30px; border-radius:16px;
+  font-size:26px; opacity:0; transition:opacity .25s, transform .25s; pointer-events:none; white-space:nowrap; z-index:5; }
+#abToast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="softSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.1 0 -0.1 1.4 -0.1 0 -0.1 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="homeSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.11 0 -0.11 1.44 -0.11 0 -0.11 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="paySharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.115 0 -0.115 1.46 -0.115 0 -0.115 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter></svg>
@@ -901,6 +942,46 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     <div class="conf-toast" id="confToast"></div>
   </div><!-- /confirmScreen -->
 
+  <div id="addBenScreen">
+    <div class="abs p-status"></div><div class="abs p-status2"></div>
+    <div class="abs p-header"></div><div class="abs p-under"></div>
+    <svg class="abs p-burger" viewBox="600 96 80 60" aria-hidden="true">
+      <rect x="614" y="107" width="53" height="4.6" rx="2.3" fill="#fff"/>
+      <rect x="614" y="123.6" width="53" height="4.4" rx="2.2" fill="#fff"/>
+      <rect x="614" y="139.8" width="53" height="4.4" rx="2.2" fill="#fff"/>
+    </svg>
+    <img class="abs tx-logo" id="abLogo" alt="" draggable="false" decoding="sync">
+    <img class="abs tx-back2" id="abBack2" alt="" draggable="false" decoding="sync">
+    <div class="abs p-back" id="abBack" role="button" tabindex="0" aria-label="رجوع"></div>
+    <div class="abs ab-title">مستفيد اخر</div>
+    <div class="abs p-above"></div><div class="abs p-bar"></div><div class="abs p-bar-under"></div>
+    <div class="abs ab-bar-txt">إضافة</div>
+
+    <div class="abs ab-card" id="abCard1"></div>
+    <div class="ab-lbl" style="right:40px;top:485px">رقم الحساب</div><div class="ab-val" id="abAcc" style="top:485px"></div>
+    <div class="ab-lbl" style="right:40px;top:567px">الاسم</div><div class="ab-val" id="abNm" style="top:567px"></div>
+    <div class="ab-lbl" style="right:47px;top:649px">نوع الحساب</div><div class="ab-val" id="abTp" style="top:649px"></div>
+    <div class="ab-lbl" style="right:47px;top:730px">الفرع</div><div class="ab-val" id="abBr" style="top:730px"></div>
+
+    <div class="abs ab-card" id="abCard2"></div>
+    <svg class="abs" style="left:31px;top:914px;width:54px;height:56px" viewBox="0 0 54 56" fill="none" stroke="#606060" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="27" cy="16" r="12.5"/><path d="M3 51 C3 40 11 34 27 34 C43 34 51 40 51 51 Q51 54 48 54 H6 Q3 54 3 51Z"/>
+    </svg>
+    <input class="ab-in" id="abName" type="text" autocomplete="off" placeholder="أدخل الإسم" aria-label="أدخل الإسم">
+
+    <div class="abs ab-card" id="abCard3"></div>
+    <svg class="abs" style="left:40px;top:1071px;width:36px;height:58px" viewBox="0 0 36 58" fill="none" stroke="#606060" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="2" y="2" width="32" height="54" rx="3.4"/><line x1="2" y1="11" x2="34" y2="11"/><line x1="2" y1="47" x2="34" y2="47"/><line x1="16.5" y1="52" x2="19.5" y2="52"/>
+    </svg>
+    <div class="abs ab-phone-lbl">249 - رقم الهاتف للرسالة النصية</div>
+    <input class="ab-in" id="abPhone" type="tel" inputmode="numeric" autocomplete="off" aria-label="رقم الهاتف">
+
+    <button class="abs ab-btn" id="abCancel" type="button">إلغاء</button>
+    <button class="abs ab-btn" id="abAdd" type="button">إضافة</button>
+    <div id="abToast"></div>
+  </div><!-- /addBenScreen -->
+
+
   <div id="receiptScreen">
    <div class="rc">
     <div class="rk-check">
@@ -1112,7 +1193,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   <div id="setBack" role="button" tabindex="0" aria-label="رجوع">رجوع</div>
   <div class="set-card">
     <div class="set-lbl">الرقم (من 1 إلى 7 أرقام)</div>
-    <input id="setNum" class="set-in" type="tel" inputmode="numeric" maxlength="7" autocomplete="off" aria-label="الرقم">
+    <input id="setNum" class="set-in" type="tel" inputmode="numeric" maxlength="16" autocomplete="off" aria-label="الرقم">
     <div class="set-lbl">الاسم الرباعي</div>
     <input id="setName" class="set-in" type="text" maxlength="60" autocomplete="off" aria-label="الاسم الرباعي">
     <div class="set-lbl">نوع الحساب</div>
@@ -1175,7 +1256,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   // إذا كان الفرق في النسبة كبيرًا (أكثر من 12%) نستخدم تكبيرًا منتظمًا. وفوق ذلك يستطيع المستخدم ضبط كل شاشة بنفسه.
   const MAX_STRETCH = 0.12;
   const VIEW_KEY = 'view-adjust-v1';
-  const SCREEN_IDS = { loginScreen: 'login', homeScreen: 'home', payScreen: 'pay', transferScreen: 'transfers', confirmScreen: 'conf', receiptScreen: 'receipt', txScreen: 'tx', txListScreen: 'txlist', acctScreen: 'acct' };
+  const SCREEN_IDS = { loginScreen: 'login', homeScreen: 'home', payScreen: 'pay', transferScreen: 'transfers', confirmScreen: 'conf', addBenScreen: 'addben', receiptScreen: 'receipt', txScreen: 'tx', txListScreen: 'txlist', acctScreen: 'acct' };
   const DEF_VIEW = () => ({ z: 1, sx: 1, sy: 1, px: 0, py: 0 });
   const views = {};
   Object.keys(SCREEN_IDS).forEach(id => {
@@ -1540,7 +1621,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     }
     // ===== بيانات قابلة للتعديل (تُحفظ في الجهاز) =====
     const DKEY = 'conf-data-v1';
-    const data = {}; let saved = {}; const AUTOK = ['name','type','branch']; const auto = {}, manual = {};
+    const data = {}; let saved = {}; const AUTOK = ['acc','name','type','branch']; const auto = {}, manual = {};
     try { saved = JSON.parse(localStorage.getItem(DKEY) || '{}') || {}; } catch (e) {}
     T.forEach(t => { if (t.key) data[t.key] = (typeof saved[t.key] === 'string' && saved[t.key].trim()) ? saved[t.key].slice(0, 60) : t.def; });
     function persist() {
@@ -1644,11 +1725,22 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 
     AUTOK.forEach(k => { manual[k] = data[k]; });
     window.openConfirm = function () {
-      { const hit = window.__lookupSavedName ? window.__lookupSavedName(document.getElementById('payInput').value) : null;
-        AUTOK.forEach(k => { const v = hit && hit[k]; if (v) { data[k] = v; auto[k] = true; } else { data[k] = manual[k]; auto[k] = false; } }); }
+      { const raw = document.getElementById('payInput').value;
+        const hit = window.__lookupSavedName ? window.__lookupSavedName(raw) : null;
+        const dg = String(raw || '').replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776)).replace(/\D/g, '');
+        const src = Object.assign({}, hit || {}, dg.length === 16 ? { acc: dg } : {});
+        AUTOK.forEach(k => { const v = src[k]; if (v) { data[k] = v; auto[k] = true; } else { data[k] = manual[k]; auto[k] = false; } }); }
       pay.style.display = 'none'; conf.style.display = 'block';
       amt.value = ''; note.value = ''; fitTexts(); conf.classList.remove('ok-hidden');
             try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    };
+    // الرجوع من الإيصال إلى شاشة التأكيد بنفس الاسم والرقم (بدون تحميل): يبقى المبلغ والملاحظات فقط للإدخال
+    window.__confInfo = function () { return { acc: data.acc, name: data.name, type: data.type, branch: data.branch, phone: data.phone }; };
+    window.reopenConfirm = function () {
+      try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+      document.getElementById('receiptScreen').style.display = 'none';
+      conf.style.display = 'block';
+      amt.value = ''; note.value = ''; fitTexts(); conf.classList.remove('ok-hidden', 'kb-open');
     };
     document.addEventListener('click', e => {
       const b = e.target.closest && e.target.closest('#cOk');
@@ -1705,7 +1797,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     // رقم الحساب المستلم: الأرقام المُدخلة (عادةً 7) تُدرج بين 13130 و0001 ثم تُقسّم لمجموعات من 4 أرقام (مثال: 1313 0310 0564 0001)
     function toAccount(raw) {
       const t = String(raw || '').trim();
-      const d = t.replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632)).replace(/\D/g, '');
+      const d = t.replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776)).replace(/\D/g, '');
       if (d.length >= 1 && d.length <= 11) { const f = '13130' + d + '0001'; return f.replace(/(\d{4})(?=\d)/g, '$1 '); }
       if (d.length === 16) return d.replace(/(\d{4})(?=\d)/g, '$1 ');
       return t || 'N/A';
@@ -1778,8 +1870,16 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       setTimeout(() => { closing = false; }, 450);
     }
     document.getElementById('rOk').addEventListener('click', closeReceipt);
-    document.getElementById('rAdd').addEventListener('click', () => toast('إضافة مستفيد جديد'));
-    document.getElementById('rShareIcon').addEventListener('click', () => toast('إنشاء تحويل جديد'));
+    const openAdd = () => { if (typeof window.openAddBen === 'function') window.openAddBen(); };
+    document.getElementById('rAdd').addEventListener('click', openAdd);
+    document.getElementById('rAddLbl').addEventListener('click', openAdd);
+    let backBusy = false;
+    function backToConfirm() {
+      if (backBusy) return; backBusy = true; setTimeout(() => { backBusy = false; }, 450);
+      if (typeof window.reopenConfirm === 'function') window.reopenConfirm();
+    }
+    document.getElementById('rShareIcon').addEventListener('click', backToConfirm);
+    document.getElementById('rTrLbl').addEventListener('click', backToConfirm);
     document.getElementById('rShare').addEventListener('click', () => toast('تمت مشاركة الإيصال'));
     const rSoon = document.getElementById('rSoon'); let soonT;
     document.getElementById('rPrint').addEventListener('click', () => {
@@ -2378,7 +2478,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
    - لا توجد فجوة بين الشاشتين أبدًا (القديمة تتحرك أبطأ من الجديدة) فلا يظهر خط أحمر أو رعشة.
    - الحركة على transform/opacity فقط (تعمل على كرت الشاشة GPU). */
 (function () {
-  var IDS = ['loginScreen','homeScreen','transferScreen','payScreen','confirmScreen','receiptScreen','txListScreen','txScreen','acctScreen','setScreen'];
+  var IDS = ['loginScreen','homeScreen','transferScreen','payScreen','confirmScreen','addBenScreen','receiptScreen','txListScreen','txScreen','acctScreen','setScreen'];
   var T = 380, EASE = 'cubic-bezier(.32,.72,0,1)', PARALLAX = 0.28;
   var state = {};
   var frame = document.getElementById('frame') || document.body;
@@ -2541,7 +2641,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   }
   function save() {
     const num = norm(numIn.value), name = clean(nameIn.value), type = clean(typeIn.value), branch = clean(branchIn.value);
-    if (num.length < 1 || num.length > 7) { say('أدخل رقماً من 1 إلى 7 أرقام', true); return; }
+    if (num.length < 1 || num.length > 16) { say('أدخل رقماً من 1 إلى 16 رقماً', true); return; }
     if (!name) { say('أدخل الاسم الرباعي', true); return; }
     const a = load(), k = key(num), i = a.findIndex(x => key(x.num) === k);
     const rec = { num, name, type, branch };
@@ -2558,7 +2658,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   });
   document.getElementById('setSave').addEventListener('click', save);
   branchIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
-  numIn.addEventListener('input', () => { const v = norm(numIn.value).slice(0, 7); if (numIn.value !== v) numIn.value = v; });
+  numIn.addEventListener('input', () => { const v = norm(numIn.value).slice(0, 16); if (numIn.value !== v) numIn.value = v; });
   function open() { home.style.display = 'none'; scr.style.display = 'block'; scr.classList.remove('open'); setAddTxt(); render(); }
   function close() { try { document.activeElement && document.activeElement.blur(); } catch (e) {} scr.style.display = 'none'; home.style.display = 'block'; }
   const grid = document.getElementById('appGrid'), back = document.getElementById('setBack');
@@ -2569,106 +2669,70 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 })();
 </script>
 <script>
-/* ===== انتهاء الجلسة: بعد أكثر من 5 دقائق بدون استخدام، أول لمسة عند العودة للتطبيق تعرض شاشة «تسجيل خروج / ملخص المعاملات»، وزر «إغلاق» يخرج من التطبيق ===== */
+/* ===== شاشة «مستفيد آخر / إضافة»: تُفتح من زر «إضافة» في الإيصال بنفس بياناته، والرجوع منها إلى شاشة التحويلات (مثل «موافق») ===== */
 (function () {
-  var LIMIT = 5 * 60 * 1000;
-  var frame = document.getElementById('frame') || document.body;
-  var loginScreen = document.getElementById('loginScreen');
-  var SCREENS = ['homeScreen','transferScreen','payScreen','confirmScreen','receiptScreen','txListScreen','txScreen','acctScreen','setScreen'];
-  var loginAt = null, lastActive = 0, txCount = 0, txTotal = 0, shownAt = 0, showing = false;
-
-  var css = document.createElement('style');
-  css.textContent =
-    '#sessScreen{position:absolute;left:0;top:0;width:688px;height:1540px;display:none;z-index:700;direction:rtl;overflow:hidden;color:#fff;' +
-    'background:linear-gradient(155deg,#7db813 0%,#4f9c1e 30%,#2f8a26 60%,#12733a 100%);font-family:"Noto Sans Arabic","Droid Sans Arabic","Segoe UI",Tahoma,Arial,sans-serif;-webkit-user-select:none;user-select:none}' +
-    '#sessScreen svg{position:absolute;left:244px;top:98px;width:199px;height:199px}' +
-    '#sessScreen .s-t1{position:absolute;left:0;right:0;top:288px;text-align:center;font-size:33px;font-weight:600}' +
-    '#sessScreen .s-t2{position:absolute;left:0;right:0;top:360px;text-align:center;font-size:37px;font-weight:300}' +
-    '#sessScreen .s-rows{position:absolute;left:57px;width:574px;top:454px}' +
-    '#sessScreen .s-row{height:73px;box-sizing:border-box;border:2px solid #e9f6df;border-radius:10px;display:flex;align-items:center;justify-content:space-between;padding:0 13px;font-size:27px;margin-bottom:1.5px}' +
-    '#sessScreen .s-row b{font-weight:600}' +
-    '#sessScreen .s-row span{direction:ltr;unicode-bidi:isolate;font-weight:400}' +
-    '#sessScreen .s-msg{position:absolute;left:0;right:0;top:872px;text-align:center;font-size:29px;line-height:1.5;font-weight:300}' +
-    '#sessScreen .s-btn{position:absolute;left:250px;top:1370px;width:187px;height:84px;box-sizing:border-box;border:3px solid #e6f4dc;border-radius:15px;cursor:pointer;' +
-    'display:flex;align-items:center;justify-content:center;font-size:27px;color:#fff;box-shadow:0 0 0 1.5px #3b8d3a,0 3px 8px rgba(0,0,0,.25);' +
-    'background:linear-gradient(180deg,#a8d29a 0%,#6aab5d 12%,#4f9a3f 48%,#3f9020 52%,#5fae1c 82%,#79bb1a 100%);-webkit-tap-highlight-color:transparent}' +
-    '#sessScreen .s-btn:active{filter:brightness(.92)}' +
-    '#sessScreen .s-foot{position:absolute;left:0;right:0;top:1479px;bottom:0;border-top:1.5px solid #dff0d4;background:rgba(5,70,40,.25);text-align:center;font-size:23px;line-height:62px}';
-  document.head.appendChild(css);
-
-  var el = document.createElement('div');
-  el.id = 'sessScreen';
-  el.innerHTML =
-    '<svg viewBox="0 0 100 100" fill="none" stroke="#fff" stroke-width="3.8" stroke-linecap="round"><path d="M34 15.5 A40 40 0 1 0 66 15.5"/><path d="M50 2 V48"/></svg>' +
-    '<div class="s-t1">تسجيل خروج</div><div class="s-t2">ملخص المعاملات</div>' +
-    '<div class="s-rows" id="sessRows"></div>' +
-    '<div class="s-msg">انتهت مدة صلاحية العملية<br>الرجاء تسجيل الدخول مرة أخرى</div>' +
-    '<div class="s-btn" id="sessClose" role="button" tabindex="0">إغلاق</div>' +
-    '<div class="s-foot">© 2024 بنك الخرطوم|بنكك حساب</div>';
-  frame.appendChild(el);
-
-  var p2 = function (n) { return String(n).padStart(2, '0'); };
-  var MO = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function fmtDT(d) { return p2(d.getDate()) + '-' + MO[d.getMonth()] + '-' + String(d.getFullYear()).slice(-2) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds()); }
-  function fmtDur(ms) { var t = Math.max(0, Math.round(ms / 1000)); return p2(Math.floor(t / 3600)) + ':' + p2(Math.floor(t % 3600 / 60)) + ':' + p2(t % 60); }
-  function fmtAmt(n) { var a = n.toFixed(2).split('.'); a[0] = a[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.'); return a[0] + '.' + a[1]; }
-
-  function resetSession() { loginAt = null; txCount = 0; txTotal = 0; }
-
-  function expire() {
-    var now = new Date(Date.now());
-    var rows = [['زمن الدخول', fmtDT(new Date(loginAt))], ['زمن الخروج', fmtDT(now)], ['الفترة الزمنية', fmtDur(now - loginAt)],
-                ['عدد المعاملات', String(txCount)], ['المبلغ الكلي', fmtAmt(txTotal) + ' جنيه']];
-    document.getElementById('sessRows').innerHTML = rows.map(function (r) { return '<div class="s-row"><b>' + r[0] + '</b><span>' + r[1] + '</span></div>'; }).join('');
+  const scr = document.getElementById('addBenScreen'), rcpt = document.getElementById('receiptScreen'), tr = document.getElementById('transferScreen');
+  const pay = document.getElementById('payScreen');
+  document.getElementById('abLogo').src = pay.querySelector('.p-logo2').src;
+  document.getElementById('abBack2').src = pay.querySelector('.p-back2').src;
+  const nameIn = document.getElementById('abName'), phoneIn = document.getElementById('abPhone'), toastEl = document.getElementById('abToast');
+  let tt, busy = false;
+  function toast(m) { toastEl.textContent = m; toastEl.classList.add('show'); clearTimeout(tt); tt = setTimeout(() => toastEl.classList.remove('show'), 1600); }
+  function setVal(id, txt) {
+    const el = document.getElementById(id);
+    el.style.transform = ''; el.textContent = ': ' + txt;
+    const w = el.offsetWidth, MAX = 410;
+    if (w > MAX) el.style.transform = 'scale(' + (MAX / w) + ')';
+  }
+  window.openAddBen = function () {
+    if (busy) return; busy = true; setTimeout(() => { busy = false; }, 450);
+    const rows = document.getElementById('rCard').children;
+    const val = i => { const r = rows[i]; const v = r && r.querySelector('.r-value'); return v ? v.textContent.trim() : ''; };
+    const info = (typeof window.__confInfo === 'function') ? window.__confInfo() : {};
     try { document.activeElement && document.activeElement.blur(); } catch (e) {}
-    /* نجهّز شاشة الدخول خلف شاشة الخروج حتى لا يظهر أي شيء بينهما */
-    SCREENS.forEach(function (id) { var s = document.getElementById(id); if (s) s.style.display = 'none'; });
-    loginScreen.style.display = 'block';
-    var pw = document.getElementById('password'); if (pw) pw.value = '';
-    shownAt = Date.now(); showing = true;
-    el.style.display = 'block';
-    resetSession();
+    rcpt.style.display = 'none'; scr.style.display = 'block';
+    setVal('abAcc', val(3).replace(/\s/g, ''));
+    setVal('abNm', val(4));
+    setVal('abTp', info.type || '');
+    setVal('abBr', info.branch || '');
+    nameIn.value = '';
+    const ph = val(5); phoneIn.value = (ph && ph !== 'N/A') ? ph : '249';
+  };
+  function closeAdd() {
+    if (busy) return; busy = true; setTimeout(() => { busy = false; }, 450);
+    try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    tr.style.display = 'block'; scr.style.display = 'none';
   }
-
-  function closeApp() {
-    showing = false; el.style.display = 'none';
-    try { window.close(); } catch (e) {}
-    /* إن لم يسمح المتصفح بإغلاق النافذة نبقى على شاشة الدخول كأن التطبيق أُعيد فتحه */
-  }
-  document.getElementById('sessClose').addEventListener('click', closeApp);
-  document.getElementById('sessClose').addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeApp(); } });
-
-  /* بداية الجلسة وتسجيل المعاملات */
-  document.getElementById('loginBtn').addEventListener('click', function () {
-    if (getComputedStyle(loginScreen).display === 'none') { loginAt = Date.now(); lastActive = loginAt; txCount = 0; txTotal = 0; }
-  });
-  document.querySelector('.power-btn').addEventListener('click', resetSession);
-  var origOpen = window.openReceipt;
-  if (typeof origOpen === 'function') {
-    window.openReceipt = function (info) {
-      var r = origOpen.apply(this, arguments);
-      txCount++; txTotal += parseFloat(String((info && info.amount) || '').replace(/[^\d.]/g, '')) || 0;
-      lastActive = Date.now();
-      return r;
-    };
-  }
-
-  /* اعتراض أول لمسة بعد انتهاء المهلة (قبل أي عنصر آخر) */
-  function guard(e) {
-    if (e.target && el.contains(e.target) && Date.now() - shownAt > 700) return;      // أزرار شاشة الخروج نفسها
-    if (showing) { if (Date.now() - shownAt <= 700) { e.stopPropagation(); e.preventDefault(); } return; }
-    if (loginAt === null || getComputedStyle(loginScreen).display !== 'none') return;
-    var down = e.type === 'pointerdown' || e.type === 'touchstart' || e.type === 'mousedown';
-    if (!down) return;
-    var now = Date.now();
-    if (now - lastActive > LIMIT) { e.stopPropagation(); e.preventDefault(); expire(); }
-    else lastActive = now;
-  }
-  ['pointerdown','touchstart','mousedown','pointerup','touchend','mouseup','click'].forEach(function (t) {
-    window.addEventListener(t, guard, { capture: true, passive: false });
-  });
-  /* عند العودة للتطبيق بعد غياب: لا نحدّث النشاط تلقائيًا، فقط اللمسة التالية هي التي تُنهي الجلسة */
+  const back = document.getElementById('abBack');
+  back.addEventListener('click', closeAdd);
+  back.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closeAdd(); } });
+  document.getElementById('abCancel').addEventListener('click', closeAdd);
+  document.getElementById('abAdd').addEventListener('click', () => { toast('تمت إضافة المستفيد'); setTimeout(closeAdd, 900); });
+  [nameIn, phoneIn].forEach(i => i.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); i.blur(); } }));
 })();
 </script>
+<style id="receiptSizeMatch">
+/* تكبير الشاشة الخضراء لتطابق لقطة الشاشة المرجعية (1080×2412) — الأحجام والمواضع فقط */
+#receiptScreen .rk-check { left:281.8px; top:75.3px; width:309px; height:310px; }
+#receiptScreen .rk-title { top:454.8px; font-size:44px; }
+#receiptScreen #rCard { left:72.7px; top:591.6px; width:726.6px; }
+#receiptScreen #rCard .r-row { height:96.4px; }
+#receiptScreen #rCard .r-row.r-wrap { min-height:96.4px; }
+#receiptScreen #rCard .r-label { font-size:34px; }
+#receiptScreen #rCard .r-value { font-size:35px; }
+#receiptScreen #rCard .r-row.r-name .r-value { font-size:40px; }
+#receiptScreen #rOk { left:318.1px; top:1525.5px; width:235.8px; height:105.2px; font-size:33px; }
+#receiptScreen #rAdd { left:60.6px; top:1670.4px; width:72.7px; height:72px; }
+#receiptScreen #rShareIcon { left:739.6px; top:1671px; width:71px; height:70px; }
+#receiptScreen #rAddLbl { left:26.5px; top:1741px; }
+#receiptScreen #rTrLbl { left:704.7px; top:1747px; }
+#receiptScreen .rk-bar { top:1809.5px; height:69.6px; }
+#receiptScreen .rk-sep { top:1822.9px; }
+#receiptScreen #rSep1 { left:326px; } #receiptScreen #rSep2 { left:556px; }
+#receiptScreen .rk-it { top:1821.9px; }
+#receiptScreen #rDownload { left:107px; width:158px; font-size:34px; }
+#receiptScreen #rPrint { left:365px; width:131px; font-size:30.5px; }
+#receiptScreen #rShare { left:619px; width:153px; font-size:30px; }
+</style>
 </body>
 </html>
