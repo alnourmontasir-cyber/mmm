@@ -672,7 +672,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="softSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.1 0 -0.1 1.4 -0.1 0 -0.1 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="homeSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.11 0 -0.11 1.44 -0.11 0 -0.11 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="paySharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.115 0 -0.115 1.46 -0.115 0 -0.115 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter></svg>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><filter id="softSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.105 0 -0.105 1.42 -0.105 0 -0.105 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="homeSharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.11 0 -0.11 1.44 -0.11 0 -0.11 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter><filter id="paySharpen" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feConvolveMatrix order="3" kernelMatrix="0 -0.115 0 -0.115 1.46 -0.115 0 -0.115 0" divisor="1" edgeMode="duplicate" preserveAlpha="true"/></filter></svg>
 <div class="viewport" id="viewport">
   <div class="frame" id="frame">
     <div id="navLoader" aria-live="polite"><div class="nl-box"><span id="nlText">تحميل</span><span class="nl-dots"><i></i><i></i><i></i></span></div></div>
@@ -1834,6 +1834,18 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     window.addEventListener('blur', settleCheck);
     window.addEventListener('focus', settleCheck);
 
+    // عرض عمود الاسم مقيس من صورة المرجع: الاسم «معمر سليمان ابراهيم عبدالله» يكسر بعد «ابراهيم» ونزول «عبدالله» للسطر الثاني،
+    // أي أن أقصى عرض للسطر ≈ 87% من عرض الجملة المرجعية كاملة. نقيسها بخط الجهاز نفسه فيبقى الحد ثابتًا مهما اختلف الخط.
+    const NAME_REF = 'معمر سليمان ابراهيم عبدالله', NAME_CAP = 0.87;
+    function fitNameBox() {
+      const v = card.querySelector('.r-name .r-value'); if (!v) return;
+      const cs = getComputedStyle(v), t = document.createElement('span');
+      t.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;direction:rtl;font-size:' + cs.fontSize + ';font-family:' + cs.fontFamily + ';font-weight:' + cs.fontWeight;
+      t.textContent = NAME_REF; v.parentNode.appendChild(t);
+      const w = t.offsetWidth; t.remove();
+      if (w > 0) v.style.maxWidth = Math.round(w * NAME_CAP) + 'px';
+    }
+
     window.openReceipt = function (info) {
       const rows = [
         { label: 'رقم العملية', value: genTxnId() },
@@ -1857,6 +1869,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       });
       document.getElementById('rBrand').textContent = (window.__names && window.__names.receipt) || 'بنكي خاص بي';
       screen.style.display = 'block';
+      fitNameBox();
       // حركة علامة الصح: تُرسم مرة واحدة فقط عند ظهور الإيصال
       drawCheck();
     };
