@@ -1761,7 +1761,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       conf.style.display = 'none';
       window.openReceipt({
         from: data.sel === '1033065833450001' ? '1033028116230001' : data.sel,
-        to: (document.getElementById('payInput').value || '').trim(),
+        to: (auto.acc && data.acc) ? data.acc : (document.getElementById('payInput').value || '').trim(),
         name: data.name,
         phone: data.phone,
         note: note.value,
@@ -1799,7 +1799,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       const t = String(raw || '').trim();
       const d = t.replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632)).replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776)).replace(/\D/g, '');
       if (d.length >= 1 && d.length <= 11) { const f = '13130' + d + '0001'; return f.replace(/(\d{4})(?=\d)/g, '$1 '); }
-      if (d.length === 16) return d.replace(/(\d{4})(?=\d)/g, '$1 ');
+      if (d.length >= 12 && d.length <= 16) return d.replace(/(\d{4})(?=\d)/g, '$1 ');
       return t || 'N/A';
     }
 
@@ -1835,7 +1835,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       const rows = [
         { label: 'رقم العملية', value: genTxnId() },
         { label: 'التاريخ و الزمن', value: formatDateTime(new Date()) },
-        { label: 'من حساب', value: info.from || 'N/A' },
+        { label: 'من حساب', value: info.from ? String(info.from).replace(/\s/g, '').replace(/(\d{4})(?=\d)/g, '$1 ') : 'N/A' },
         { label: 'الى حساب', value: toAccount(info.to), wrap: true },
         { label: 'إسم المرسل اليه', value: (info.name || '').trim() || 'N/A', rtl: true, wrap: true, cls: 'r-name' },
         { label: 'رقم الموبايل', value: (info.phone && info.phone !== '249') ? info.phone : 'N/A' },
@@ -2492,32 +2492,73 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   shade.setAttribute('aria-hidden', 'true');
   frame.appendChild(shade);
   var shadeAnim = null;
+  var flyIn = [], ghosts = [];                 /* شاشات قيد الدخول / قيد الخروج */
 
   function cancelAnims(el) {
     try { (el.getAnimations ? el.getAnimations() : []).forEach(function (a) { a.cancel(); }); } catch (e) {}
   }
+  /* أي تعديل ستايل منّا لا يجب أن يُحسب كتغيير من الكود */
+  function quiet(fn) { try { fn(); } finally { mo.takeRecords(); } }
+  function bump(el) { el.__tok = (el.__tok || 0) + 1; return el.__tok; }
+  function drop(list, el) { var i = list.indexOf(el); if (i >= 0) list.splice(i, 1); }
 
-  function endGhost(el) {
-    if (!el.__navGhost) return;
-    el.__navGhost = false;
-    cancelAnims(el);
-    el.style.pointerEvents = '';
-    el.style.zIndex = el.__prevZ || '';
-    el.style.removeProperty('display');
-    el.style.display = 'none';
-    mo.takeRecords();
+  /* رفع الشاشة الداخلة فوق غيرها وإرجاع قيمها الأصلية بدقة (حتى لو تداخلت حركتان) */
+  function lift(el) {
+    if (!el.__orig) el.__orig = { z: el.style.zIndex, sh: el.style.boxShadow };
+    el.style.zIndex = '600';
+    el.style.boxShadow = '-14px 0 30px rgba(0,0,0,.18)';
+    el.style.willChange = 'transform';
+    el.style.backfaceVisibility = 'hidden';
+  }
+  function unlift(el) {
+    if (el.__orig) { el.style.zIndex = el.__orig.z; el.style.boxShadow = el.__orig.sh; el.__orig = null; }
+    el.style.willChange = ''; el.style.backfaceVisibility = '';
   }
 
   function hideShade() { if (shadeAnim) { try { shadeAnim.cancel(); } catch (e) {} shadeAnim = null; } shade.style.display = 'none'; }
 
+  function endGhost(el) {
+    if (!el.__navGhost) return;
+    el.__navGhost = false; bump(el); drop(ghosts, el);
+    cancelAnims(el);
+    quiet(function () {
+      el.style.pointerEvents = '';
+      el.style.zIndex = el.__prevZ || '';
+      el.style.willChange = ''; el.style.backfaceVisibility = '';
+      el.style.removeProperty('display');
+      el.style.display = 'none';
+    });
+  }
+
+  /* الكود نفسه غيّر شاشة كانت تخرج: نتركها كما أرادها الكود وننظّف ما أضفناه */
+  function dropGhost(el) {
+    el.__navGhost = false; bump(el); drop(ghosts, el);
+    cancelAnims(el);
+    quiet(function () {
+      el.style.pointerEvents = ''; el.style.zIndex = el.__prevZ || '';
+      el.style.willChange = ''; el.style.backfaceVisibility = '';
+    });
+  }
+
+  /* إنهاء أي حركة سابقة فورًا قبل بدء حركة جديدة (يمنع التلخبط عند الضغط السريع) */
+  function settle() {
+    flyIn.slice().forEach(function (el) { bump(el); cancelAnims(el); quiet(function () { unlift(el); }); });
+    flyIn = [];
+    ghosts.slice().forEach(endGhost);
+    hideShade();
+  }
+
   function slideIn(el) {
-    var prevZ = el.style.zIndex;
-    el.style.zIndex = '600';
-    el.style.boxShadow = '-22px 0 40px rgba(0,0,0,.20)';
-    el.style.willChange = 'transform';
-    el.style.backfaceVisibility = 'hidden';
-    var done = function () { el.style.zIndex = prevZ; el.style.boxShadow = ''; el.style.willChange = ''; el.style.backfaceVisibility = ''; hideShade(); };
+    var tok = bump(el);
+    quiet(function () { lift(el); });
     void el.offsetWidth; /* تثبيت التخطيط وتجهيز الطبقة قبل أول إطار */
+    flyIn.push(el);
+    var done = function () {
+      if (el.__tok !== tok) return;
+      quiet(function () { unlift(el); });
+      drop(flyIn, el);
+      if (!flyIn.length) hideShade();
+    };
     try {
       shade.style.display = 'block';
       if (shadeAnim) { try { shadeAnim.cancel(); } catch (e) {} }
@@ -2529,15 +2570,19 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 
   /* الشاشة القديمة: نُبقيها ظاهرة (هي نفسها) أثناء الحركة ثم نخفيها */
   function slideOut(el) {
+    var tok = bump(el);
+    drop(flyIn, el);
     cancelAnims(el);
+    quiet(function () { unlift(el); });
     el.__prevZ = el.style.zIndex;
-    el.__navGhost = true;
-    el.style.setProperty('display', 'block', 'important');
-    el.style.pointerEvents = 'none';
-    el.style.willChange = 'transform';
-    el.style.backfaceVisibility = 'hidden';
-    mo.takeRecords();
-    var fin = function () { el.style.willChange = ''; el.style.backfaceVisibility = ''; endGhost(el); };
+    el.__navGhost = true; ghosts.push(el);
+    quiet(function () {
+      el.style.setProperty('display', 'block', 'important');
+      el.style.pointerEvents = 'none';
+      el.style.willChange = 'transform';
+      el.style.backfaceVisibility = 'hidden';
+    });
+    var fin = function () { if (el.__tok !== tok) return; endGhost(el); };
     try {
       var a = el.animate(
         [{ transform: 'translate3d(0,0,0)' }, { transform: 'translate3d(' + (-PARALLAX * 100) + '%,0,0)' }],
@@ -2555,32 +2600,31 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     var rcpt = document.getElementById('receiptScreen');
     if (rcpt && seen.indexOf(rcpt) >= 0 && vis(rcpt)) {
       seen.forEach(function (el) {
-        if (el.__navGhost && !isGhost(el)) { el.__navGhost = false; cancelAnims(el); }
+        if (el.__navGhost && !isGhost(el)) dropGhost(el);
         state[el.id] = vis(el);
       });
+      settle();
       return;
     }
 
     var outs = [], ins = [];
     seen.forEach(function (el) {
       if (isGhost(el)) return;                       // تغيير صادر منا نحن
-      if (el.__navGhost) {                           // الكود غيّر العرض أثناء حركة الخروج
-        el.__navGhost = false; cancelAnims(el);
-        el.style.pointerEvents = ''; el.style.zIndex = el.__prevZ || ''; el.style.willChange = '';
-      }
+      if (el.__navGhost) dropGhost(el);              // الكود غيّر العرض أثناء حركة الخروج
       var now = vis(el), was = state[el.id];
       if (was === now) return;
       state[el.id] = now;
       (now ? ins : outs).push(el);
     });
 
+    if (!ins.length && !outs.length) return;
+    settle();                                        // أنهِ أي حركة جارية فورًا ثم ابدأ الجديدة نظيفة
+
     if (ins.length) {
       outs.forEach(slideOut);
       ins.forEach(slideIn);
-    } else {
-      /* إخفاء بدون شاشة بديلة: لا حركة */
-      outs.forEach(function (el) { cancelAnims(el); });
     }
+    /* إخفاء بدون شاشة بديلة: لا حركة (تم إخفاؤها فعلاً) */
   });
 
   IDS.forEach(function (id) {
@@ -2617,8 +2661,11 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   function store(a) { try { localStorage.setItem(KEY, JSON.stringify(a)); } catch (e) {} }
   window.__lookupSavedName = function (raw) {
     const k = key(raw); if (!k) return null;
-    const r = load().find(x => key(x.num) === k);
-    return r ? { name: r.name, type: r.type || '', branch: r.branch || '' } : null;
+    const isFull = n => n.length >= 10 && n.length <= 16 && n.slice(-4) === '0001';
+    const mid = x => { const n = norm(x.num); return isFull(n) ? key(n.slice(5, -4)) : (n.length === 16 ? key(n.slice(5, 12)) : null); };
+    const acc16 = x => { const n = norm(x.num); return (isFull(n) || n.length === 16) ? n : ''; };
+    const r = load().find(x => key(x.num) === k) || load().find(x => mid(x) === k);
+    return r ? { name: r.name, type: r.type || '', branch: r.branch || '', acc: acc16(r) } : null;
   };
   let t;
   function say(m, err) { msg.textContent = m; msg.className = err ? 'err' : ''; clearTimeout(t); t = setTimeout(() => { msg.textContent = ''; }, 2500); }
