@@ -1184,6 +1184,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   });
   function saveViews() { try { localStorage.setItem(VIEW_KEY, JSON.stringify(views)); } catch (e) {} }
   function curScreenKey() {
+    /* أثناء الانتقال تبقى الشاشة القديمة ظاهرة مؤقتًا (شبح) بجانب الجديدة؛ نتجاهلها حتى لا يتبدّل تحجيم الإطار
+       بين شاشتين في منتصف الحركة (وهو سبب الارتجاف/القفز) */
+    for (const id in SCREEN_IDS) { const el = document.getElementById(id); if (el && !el.__navGhost && getComputedStyle(el).display !== 'none') return SCREEN_IDS[id]; }
     for (const id in SCREEN_IDS) { const el = document.getElementById(id); if (el && getComputedStyle(el).display !== 'none') return SCREEN_IDS[id]; }
     return 'login';
   }
@@ -2002,7 +2005,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     function run(msg, fn, dur) {
       if (busy) return; busy = true;
       try { document.activeElement && document.activeElement.blur(); } catch (e) {}
-      const isLogin = (msg === 'جاري تسجيل الدخول'); txt.textContent = isLogin ? msg : 'تحميل'; loader.classList.toggle('nl-login', isLogin); loader.classList.add('show');
+      const isLogin = (msg === 'جاري تسجيل الدخول'); txt.textContent = (isLogin || msg === 'معالجة') ? msg : 'تحميل'; loader.classList.toggle('nl-login', isLogin); loader.classList.add('show');
       setTimeout(() => { try { fn(); } finally { loader.classList.remove('show'); busy = false; } }, dur || DUR);
     }
     // أزرار تنفيذ عبر النقر: نعترض النقرة ثم نعيدها بعد الانتظار
@@ -2012,7 +2015,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       { sel: '#payBack', msg: 'تحميل' },
       { sel: '#cBack', msg: 'تحميل' },
       { sel: '#cCancel', msg: 'تحميل' },
-      { sel: '#cOk', msg: 'جاري تنفيذ التحويل', ok: () => (document.getElementById('cAmt').value || '').trim() },
+      { sel: '#cOk', msg: 'معالجة', ok: () => (document.getElementById('cAmt').value || '').trim() },
       // ===== حافظة المعاملات: فتحها + التنقل بين قائمتها وتفاصيلها + كل أزرار الإجراءات =====
       { sel: '.app-item[data-go="tx"]', msg: 'تحميل', ok: () => { try { const a = JSON.parse(localStorage.getItem('tx-history-v1') || '[]'); return Array.isArray(a) && a.length > 0; } catch (e) { return false; } } },
       { sel: '.tl-card', msg: 'تحميل' },
@@ -2412,7 +2415,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     el.style.zIndex = '600';
     el.style.boxShadow = '-22px 0 40px rgba(0,0,0,.20)';
     el.style.willChange = 'transform';
-    var done = function () { el.style.zIndex = prevZ; el.style.boxShadow = ''; el.style.willChange = ''; hideShade(); };
+    el.style.backfaceVisibility = 'hidden';
+    var done = function () { el.style.zIndex = prevZ; el.style.boxShadow = ''; el.style.willChange = ''; el.style.backfaceVisibility = ''; hideShade(); };
+    void el.offsetWidth; /* تثبيت التخطيط وتجهيز الطبقة قبل أول إطار */
     try {
       shade.style.display = 'block';
       if (shadeAnim) { try { shadeAnim.cancel(); } catch (e) {} }
@@ -2430,8 +2435,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     el.style.setProperty('display', 'block', 'important');
     el.style.pointerEvents = 'none';
     el.style.willChange = 'transform';
+    el.style.backfaceVisibility = 'hidden';
     mo.takeRecords();
-    var fin = function () { el.style.willChange = ''; endGhost(el); };
+    var fin = function () { el.style.willChange = ''; el.style.backfaceVisibility = ''; endGhost(el); };
     try {
       var a = el.animate(
         [{ transform: 'translate3d(0,0,0)' }, { transform: 'translate3d(' + (-PARALLAX * 100) + '%,0,0)' }],
