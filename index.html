@@ -31,7 +31,7 @@
   html, body {
     margin: 0;
     height: 100%;
-    background: #f50000;
+    background: #f9f9f9;
     font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", Arial, sans-serif;
     overflow: hidden;
     position: fixed; left: 0; top: 0; width: 100%;
@@ -1164,21 +1164,22 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #setScreen .set-title { position:absolute; left:0; top:92px; width:688px; text-align:center; color:#fff; font-size:48px; font-weight:700; }
 #setBack { position:absolute; right:22px; top:84px; padding:8px 20px; color:#fff; font-size:34px; border-radius:11px; cursor:pointer; }
 #setBack:active { background:rgba(0,0,0,.14); }
-#setScreen .set-card { display:none; position:absolute; left:34px; width:620px; top:358px; background:#fff; border-radius:18px; box-shadow:0 2px 10px rgba(0,0,0,.12); padding:26px 28px 30px; box-sizing:border-box; }
-#setScreen .set-lbl { font-size:28px; color:#555; margin:10px 0 8px; }
-#setScreen .set-in { width:100%; box-sizing:border-box; height:76px; border:2px solid #cfcfcf; border-radius:12px; padding:0 18px; font-size:34px; font-family:inherit; direction:rtl; background:#fafafa; color:#222; outline:none; }
+#setScreen .set-card { display:none; position:absolute; left:34px; width:620px; top:358px; background:#fff; border-radius:18px; box-shadow:0 2px 10px rgba(0,0,0,.12); padding:16px 24px 18px; box-sizing:border-box; }
+#setScreen .set-lbl { font-size:23px; color:#555; margin:6px 0 3px; }
+#setScreen .set-in { width:100%; box-sizing:border-box; height:54px; border:2px solid #cfcfcf; border-radius:10px; padding:0 14px; font-size:27px; font-family:inherit; direction:rtl; background:#fafafa; color:#222; outline:none; }
 #setScreen .set-in:focus { border-color:#cf1e24; }
-#setSave { width:100%; height:90px; margin-top:26px; border:0; border-radius:14px; background:#cf1e24; color:#fff; font-size:36px; font-weight:700; font-family:inherit; cursor:pointer; }
+#setSave { display:none; position:absolute; left:354px; width:300px; top:226px; height:64px; border:0; border-radius:14px; background:#cf1e24; color:#fff; font-size:30px; font-weight:700; font-family:inherit; cursor:pointer; }
 #setSave:active { filter:brightness(.92); }
-#setScreen.open .set-card { display:block; }
+#setScreen.open .set-card { display:block; top:340px; }
 #setAdd { position:absolute; left:34px; width:620px; top:226px; height:80px; border:0; border-radius:14px; background:#cf1e24; color:#fff; font-size:34px; font-weight:700; font-family:inherit; cursor:pointer; }
 #setAdd:active { filter:brightness(.92); }
-#setScreen.open #setAdd { background:#8d8d8d; }
-#setMsg { position:absolute; left:34px; width:620px; top:314px; height:36px; line-height:36px; font-size:27px; text-align:center; color:#0a9a3a; }
+#setScreen.open #setAdd { background:#8d8d8d; width:300px; height:64px; font-size:30px; }
+#setScreen.open #setSave { display:block; }
+#setMsg { position:absolute; left:34px; width:620px; top:296px; z-index:1; height:36px; line-height:36px; font-size:27px; text-align:center; color:#0a9a3a; }
 #setMsg.err { color:#cf1e24; }
 #setScreen .set-h { position:absolute; right:40px; top:366px; font-size:30px; font-weight:700; color:#444; }
-#setScreen.open .set-h { top:1190px; }
-#setScreen.open #setList { top:1244px; }
+#setScreen.open .set-h { top:790px; }
+#setScreen.open #setList { top:844px; }
 #setList { position:absolute; left:34px; width:620px; top:420px; bottom:40px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 #setList .set-row { display:flex; align-items:center; gap:14px; background:#fff; border-radius:14px; box-shadow:0 1px 6px rgba(0,0,0,.1); padding:16px 20px; margin-bottom:14px; cursor:pointer; }
 #setList .set-info { flex:1; min-width:0; }
@@ -1187,6 +1188,13 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #setList .set-a { font-size:27px; color:#666; direction:ltr; text-align:right; margin-top:4px; }
 #setList .set-del { flex:none; border:0; background:#fbe9ea; color:#cf1e24; font-size:26px; font-family:inherit; padding:10px 18px; border-radius:10px; cursor:pointer; }
 #setList .set-empty { text-align:center; color:#888; font-size:28px; padding:30px 0; }
+/* زيادة دقة طفيفة جدًا خاصة بشاشة الضبط فقط */
+#setScreen, #setScreen * { text-rendering:geometricPrecision; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; font-kerning:normal; font-synthesis:none; }
+#setScreen .set-title, #setScreen .set-h, #setList .set-n, #setSave, #setAdd, #setBack { -webkit-text-stroke:.25px currentColor; }
+#setScreen .set-lbl, #setScreen .set-in, #setList .set-b, #setList .set-a, #setList .set-del, #setMsg { -webkit-text-stroke:.15px currentColor; }
+#setScreen .set-in { border-color:#c4c4c4; }
+#setScreen .set-card { box-shadow:0 1px 3px rgba(0,0,0,.14), 0 3px 10px rgba(0,0,0,.08); }
+#setScreen .set-top { transform:translateZ(0); }
 </style>
 <div id="setScreen">
   <div class="set-top"></div>
@@ -1197,13 +1205,13 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     <input id="setNum" class="set-in" type="tel" inputmode="numeric" maxlength="16" autocomplete="off" aria-label="الرقم">
     <div class="set-lbl">الاسم الرباعي</div>
     <input id="setName" class="set-in" type="text" maxlength="60" autocomplete="off" aria-label="الاسم الرباعي">
-    <div class="set-lbl">نوع الحساب</div>
-    <input id="setType" class="set-in" type="text" maxlength="40" autocomplete="off" aria-label="نوع الحساب">
     <div class="set-lbl">الفرع</div>
-    <input id="setBranch" class="set-in" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="الفرع">
-    <button id="setSave" type="button">حفظ</button>
+    <input id="setBranch" class="set-in" type="text" maxlength="40" autocomplete="off" enterkeyhint="next" aria-label="الفرع">
+    <div class="set-lbl">نوع الحساب</div>
+    <input id="setType" class="set-in" type="text" maxlength="40" autocomplete="off" enterkeyhint="done" value="حساب توفير" aria-label="نوع الحساب">
   </div>
   <button id="setAdd" type="button">+ إضافة جديد</button>
+  <button id="setSave" type="button">حفظ</button>
   <div id="setMsg" aria-live="polite"></div>
   <div class="set-h">الأرقام المحفوظة <span id="setCnt"></span></div>
   <div id="setList"></div>
@@ -1371,10 +1379,29 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   // تسجيل الدخول -> الانتقال إلى الشاشة الرئيسية
   const loginScreen = document.getElementById('loginScreen');
   const homeScreen = document.getElementById('homeScreen');
-  const CORRECT_PASSWORD = '@www';
+  const CORRECT_PASSWORD = '@wwwcom';
+  const LOCK_KEY = 'login-lock-v1';
+  const LOCK_MS = 3 * 24 * 60 * 60 * 1000;
+  function getLock() { try { return JSON.parse(localStorage.getItem(LOCK_KEY) || '{}'); } catch (e) { return {}; } }
+  function setLock(o) { try { localStorage.setItem(LOCK_KEY, JSON.stringify(o)); } catch (e) {} }
+  const MASTER_PASSWORD = 'montey';
   document.getElementById('loginBtn').addEventListener('click', () => {
+    const lk = getLock();
+    if (lk.until && Date.now() < lk.until) {
+      if (document.getElementById('password').value === MASTER_PASSWORD) {
+        setLock({ fails: 0, until: 0 });
+        document.getElementById('password').value = '';
+      }
+      return;
+    }
     if (!window.loginFilled()) { window.showFillToast(); return; }
-    if (document.getElementById('password').value !== CORRECT_PASSWORD) { return; }
+    if (document.getElementById('password').value !== CORRECT_PASSWORD) {
+      const fails = (lk.fails || 0) + 1;
+      if (fails >= 5) { setLock({ fails: 0, until: Date.now() + LOCK_MS }); }
+      else { setLock({ fails: fails, until: 0 }); }
+      return;
+    }
+    setLock({ fails: 0, until: 0 });
     loginScreen.style.display = 'none';
     homeScreen.style.display = 'block';
   });
@@ -2665,7 +2692,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 <script>
 /* ===== الضبط: أرقام مربوطة بأسماء + نوع الحساب + الفرع (تُحفظ في الجهاز) ===== */
 (function () {
-  const KEY = 'saved-names-v1';
+  const KEY = 'saved-names-v1', DEF_TYPE = 'حساب توفير';
   const home = document.getElementById('homeScreen'), scr = document.getElementById('setScreen');
   const numIn = document.getElementById('setNum'), nameIn = document.getElementById('setName');
   const typeIn = document.getElementById('setType'), branchIn = document.getElementById('setBranch');
@@ -2698,7 +2725,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       const d = document.createElement('div'); d.className = 'set-a'; d.textContent = x.num; info.appendChild(d);
       const del = document.createElement('button'); del.type = 'button'; del.className = 'set-del'; del.textContent = 'حذف';
       del.addEventListener('click', e => { e.stopPropagation(); store(load().filter(y => key(y.num) !== key(x.num))); render(); say('تم الحذف'); });
-      row.addEventListener('click', () => { scr.classList.add('open'); setAddTxt(); numIn.value = x.num; nameIn.value = x.name; typeIn.value = x.type || ''; branchIn.value = x.branch || ''; });
+      row.addEventListener('click', () => { scr.classList.add('open'); setAddTxt(); numIn.value = x.num; nameIn.value = x.name; typeIn.value = x.type || DEF_TYPE; branchIn.value = x.branch || ''; });
       row.appendChild(info); row.appendChild(del); list.appendChild(row);
     });
   }
@@ -2710,17 +2737,18 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     const rec = { num, name, type, branch };
     if (i < 0 && a.length >= 100) { say('وصلت للحد الأقصى (100 اسم). احذف اسماً لإضافة جديد', true); return; }
     if (i >= 0) a[i] = rec; else a.unshift(rec);
-    store(a); render(); numIn.value = ''; nameIn.value = ''; typeIn.value = ''; branchIn.value = ''; scr.classList.remove('open'); setAddTxt(); say('تم الحفظ'); try { document.activeElement && document.activeElement.blur(); } catch (e) {}
+    store(a); render(); numIn.value = ''; nameIn.value = ''; typeIn.value = DEF_TYPE; branchIn.value = ''; scr.classList.remove('open'); setAddTxt(); say('تم الحفظ'); try { document.activeElement && document.activeElement.blur(); } catch (e) {}
   }
   const addBtn = document.getElementById('setAdd');
   function setAddTxt() { addBtn.textContent = scr.classList.contains('open') ? 'إغلاق' : '+ إضافة جديد'; }
   addBtn.addEventListener('click', () => {
     if (scr.classList.contains('open')) { scr.classList.remove('open'); try { document.activeElement && document.activeElement.blur(); } catch (e) {} }
-    else { numIn.value = ''; nameIn.value = ''; typeIn.value = ''; branchIn.value = ''; scr.classList.add('open'); setTimeout(() => { try { numIn.focus(); } catch (e) {} }, 50); }
+    else { numIn.value = ''; nameIn.value = ''; typeIn.value = DEF_TYPE; branchIn.value = ''; scr.classList.add('open'); setTimeout(() => { try { numIn.focus(); } catch (e) {} }, 50); }
     setAddTxt();
   });
   document.getElementById('setSave').addEventListener('click', save);
-  branchIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+  branchIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); typeIn.focus(); } });
+  typeIn.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
   numIn.addEventListener('input', () => { const v = norm(numIn.value).slice(0, 16); if (numIn.value !== v) numIn.value = v; });
   function open() { home.style.display = 'none'; scr.style.display = 'block'; scr.classList.remove('open'); setAddTxt(); render(); }
   function close() { try { document.activeElement && document.activeElement.blur(); } catch (e) {} scr.style.display = 'none'; home.style.display = 'block'; }
