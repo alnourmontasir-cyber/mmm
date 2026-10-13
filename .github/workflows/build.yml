@@ -28,6 +28,12 @@ jobs:
           test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
+          # خط Cairo داخل التطبيق (يعمل بدون إنترنت)
+          mkdir -p cairo-tmp www/fonts
+          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5)
+          F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
+          test -s "$F" || { echo "ERROR: Cairo font missing"; exit 1; }
+          cp "$F" www/fonts/cairo.woff2
           convert icon.png -resize 1024x1024^ -gravity center -background white -extent 1024x1024 assets/icon.png
 
       - name: Create Android project
