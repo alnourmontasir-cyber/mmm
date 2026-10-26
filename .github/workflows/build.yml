@@ -28,7 +28,7 @@ jobs:
           test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
-          # خط Cairo داخل التطبيق (يعمل بدون إنترنت)
+          # ط®ط· Cairo ط¯ط§ط®ظ„ ط§ظ„طھط·ط¨ظٹظ‚ (ظٹط¹ظ…ظ„ ط¨ط¯ظˆظ† ط¥ظ†طھط±ظ†طھ)
           mkdir -p cairo-tmp www/fonts
           (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5)
           F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
@@ -57,11 +57,11 @@ jobs:
         run: |
           STYLES=android/app/src/main/res/values/styles.xml
           MANIFEST=android/app/src/main/AndroidManifest.xml
-          # السماح للتطبيق بالامتداد خلف النتوء (notch)
+          # ط§ظ„ط³ظ…ط§ط­ ظ„ظ„طھط·ط¨ظٹظ‚ ط¨ط§ظ„ط§ظ…طھط¯ط§ط¯ ط®ظ„ظپ ط§ظ„ظ†طھظˆط، (notch)
           sed -i 's|<style name="AppTheme.NoActionBar"[^>]*>|&\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>|' "$STYLES"
-          # اتجاه عمودي فقط
+          # ط§طھط¬ط§ظ‡ ط¹ظ…ظˆط¯ظٹ ظپظ‚ط·
           sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' "$MANIFEST"
-          # إخفاء شريط الحالة وأزرار النظام (ملء الشاشة الحقيقي)
+          # ط¥ط®ظپط§ط، ط´ط±ظٹط· ط§ظ„ط­ط§ظ„ط© ظˆط£ط²ط±ط§ط± ط§ظ„ظ†ط¸ط§ظ… (ظ…ظ„ط، ط§ظ„ط´ط§ط´ط© ط§ظ„ط­ظ‚ظٹظ‚ظٹ)
           cat > android/app/src/main/java/com/bok/app/MainActivity.java <<'JAVA'
           package com.bok.app;
 
@@ -77,22 +77,57 @@ jobs:
           import com.getcapacitor.BridgeActivity;
 
           public class MainActivity extends BridgeActivity {
+              private float swipeStartX = -1;
+              private float swipeStartY = -1;
+              private long swipeStartTime = 0;
+
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  // التطبيق يمتد خلف شريط الحالة وأزرار النظام (بدون أي شريط أبيض)
                   getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
                   WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
                   getWindow().setStatusBarColor(Color.TRANSPARENT);
                   getWindow().setNavigationBarColor(Color.TRANSPARENT);
-                  // الكيبورد فقط هو الذي يقلّص الصفحة
                   View root = findViewById(android.R.id.content);
                   ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
                       Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
                       v.setPadding(0, 0, 0, ime.bottom);
                       return insets;
                   });
+                  root.setOnTouchListener((v, event) -> handleEdgeSwipe(event));
                   hideBars();
+              }
+
+              private boolean handleEdgeSwipe(android.view.MotionEvent event) {
+                  int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                  int edgeThreshold = 80;
+                  switch (event.getAction()) {
+                      case android.view.MotionEvent.ACTION_DOWN:
+                          swipeStartX = event.getX();
+                          swipeStartY = event.getY();
+                          swipeStartTime = System.currentTimeMillis();
+                          return false;
+                      case android.view.MotionEvent.ACTION_MOVE:
+                          if (swipeStartX < 0) return false;
+                          float deltaX = event.getX() - swipeStartX;
+                          float deltaY = Math.abs(event.getY() - swipeStartY);
+                          long elapsed = System.currentTimeMillis() - swipeStartTime;
+                          boolean fromLeft = swipeStartX < edgeThreshold && deltaX > 120 && deltaY < 180 && elapsed < 600;
+                          boolean fromRight = swipeStartX > (screenWidth - edgeThreshold) && deltaX < -120 && deltaY < 180 && elapsed < 600;
+                          if (fromLeft || fromRight) {
+                              String js = "if(window.goBack)window.goBack();";
+                              this.getWebView().evaluateJavascript(js, null);
+                              swipeStartX = -1;
+                              return true;
+                          }
+                          return false;
+                      case android.view.MotionEvent.ACTION_UP:
+                      case android.view.MotionEvent.ACTION_CANCEL:
+                          swipeStartX = -1;
+                          return false;
+                      default:
+                          return false;
+                  }
               }
 
               @Override
