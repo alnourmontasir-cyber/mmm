@@ -1,0 +1,159 @@
+name: Build BOK APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Prepare web files
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y imagemagick
+          test -s index.html || { echo "ERROR: index.html is missing or empty"; exit 1; }
+          test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
+          mkdir -p www assets
+          cp index.html www/index.html
+          # خط Cairo داخل التطبيق (يعمل بدون إنترنت)
+          mkdir -p cairo-tmp www/fonts
+          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5)
+          F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
+          test -s "$F" || { echo "ERROR: Cairo font missing"; exit 1; }
+          cp "$F" www/fonts/cairo.woff2
+          convert icon.png -resize 1024x1024^ -gravity center -background white -extent 1024x1024 assets/icon.png
+
+      - name: Create Android project
+        run: |
+          npm init -y
+          npm install @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 @capacitor/assets@3
+          npx cap init BOK com.bok.app --web-dir=www
+          node -e "const fs=require('fs');const f='capacitor.config.json';const c=JSON.parse(fs.readFileSync(f,'utf8'));c.backgroundColor='#FFFFFF';fs.writeFileSync(f,JSON.stringify(c,null,2))"
+          npx cap add android
+          npx capacitor-assets generate --android
+
+      - name: White splash and light theme
+        run: |
+          STYLES=android/app/src/main/res/values/styles.xml
+          sed -i 's/Theme.AppCompat.DayNight/Theme.AppCompat.Light/g' "$STYLES"
+          sed -i 's|<style name="AppTheme.NoActionBarLaunch"[^>]*>|&\n        <item name="windowSplashScreenBackground">#FFFFFF</item>|' "$STYLES"
+          cat "$STYLES"
+          npx cap sync android
+
+      - name: Fullscreen and portrait
+        run: |
+          STYLES=android/app/src/main/res/values/styles.xml
+          MANIFEST=android/app/src/main/AndroidManifest.xml
+          # السماح للتطبيق بالامتداد خلف النتوء (notch)
+          sed -i 's|<style name="AppTheme.NoActionBar"[^>]*>|&\n        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>|' "$STYLES"
+          # اتجاه عمودي فقط
+          sed -i '0,/<activity/s//<activity android:screenOrientation="portrait"/' "$MANIFEST"
+          # إخفاء شريط الحالة وأزرار النظام (ملء الشاشة الحقيقي)
+          cat > android/app/src/main/java/com/bok/app/MainActivity.java <<'JAVA'
+          package com.bok.app;
+
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import androidx.core.graphics.Insets;
+          import androidx.core.view.ViewCompat;
+          import androidx.core.view.WindowCompat;
+          import androidx.core.view.WindowInsetsCompat;
+          import androidx.core.view.WindowInsetsControllerCompat;
+          import com.getcapacitor.BridgeActivity;
+
+          public class MainActivity extends BridgeActivity {
+              private float swipeStartX = -1;
+              private float swipeStartY = -1;
+              private long swipeStartTime = 0;
+
+              @Override
+              public void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
+                  WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+                  getWindow().setStatusBarColor(Color.TRANSPARENT);
+                  getWindow().setNavigationBarColor(Color.TRANSPARENT);
+                  View root = findViewById(android.R.id.content);
+                  ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
+                      Insets ime = insets.getInsets(WindowInsetsCompat.Type.ime());
+                      v.setPadding(0, 0, 0, ime.bottom);
+                      return insets;
+                  });
+                  root.setOnTouchListener((v, event) -> handleEdgeSwipe(event));
+                  hideBars();
+              }
+
+              private boolean handleEdgeSwipe(android.view.MotionEvent event) {
+                  int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                  int edgeThreshold = 80;
+                  switch (event.getAction()) {
+                      case android.view.MotionEvent.ACTION_DOWN:
+                          swipeStartX = event.getX();
+                          swipeStartY = event.getY();
+                          swipeStartTime = System.currentTimeMillis();
+                          return false;
+                      case android.view.MotionEvent.ACTION_MOVE:
+                          if (swipeStartX < 0) return false;
+                          float deltaX = event.getX() - swipeStartX;
+                          float deltaY = Math.abs(event.getY() - swipeStartY);
+                          long elapsed = System.currentTimeMillis() - swipeStartTime;
+                          boolean fromLeft = swipeStartX < edgeThreshold && deltaX > 120 && deltaY < 180 && elapsed < 600;
+                          boolean fromRight = swipeStartX > (screenWidth - edgeThreshold) && deltaX < -120 && deltaY < 180 && elapsed < 600;
+                          if (fromLeft || fromRight) {
+                              String js = "if(window.goBack)window.goBack();";
+                              this.getWebView().evaluateJavascript(js, null);
+                              swipeStartX = -1;
+                              return true;
+                          }
+                          return false;
+                      case android.view.MotionEvent.ACTION_UP:
+                      case android.view.MotionEvent.ACTION_CANCEL:
+                          swipeStartX = -1;
+                          return false;
+                      default:
+                          return false;
+                  }
+              }
+
+              @Override
+              public void onWindowFocusChanged(boolean hasFocus) {
+                  super.onWindowFocusChanged(hasFocus);
+                  if (hasFocus) hideBars();
+              }
+
+              private void hideBars() {
+                  WindowInsetsControllerCompat c = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+                  c.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                  c.hide(WindowInsetsCompat.Type.systemBars());
+              }
+          }
+          JAVA
+          grep -n "screenOrientation" "$MANIFEST"
+          grep -n "CutoutMode" "$STYLES"
+
+      - name: Build APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BOK-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          
