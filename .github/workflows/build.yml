@@ -75,8 +75,14 @@ jobs:
           import androidx.core.view.WindowInsetsCompat;
           import androidx.core.view.WindowInsetsControllerCompat;
           import com.getcapacitor.BridgeActivity;
+          import com.getcapacitor.JSObject;
+          import com.getcapacitor.PluginCall;
 
           public class MainActivity extends BridgeActivity {
+              private float swipeStartX = -1;
+              private float swipeStartY = -1;
+              private long swipeStartTime = 0;
+
               @Override
               public void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
@@ -90,7 +96,43 @@ jobs:
                       v.setPadding(0, 0, 0, ime.bottom);
                       return insets;
                   });
+                  root.setOnTouchListener((v, event) -> handleEdgeSwipe(event));
                   hideBars();
+              }
+
+              private boolean handleEdgeSwipe(android.view.MotionEvent event) {
+                  int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                  int edgeThreshold = 80;
+                  switch (event.getAction()) {
+                      case android.view.MotionEvent.ACTION_DOWN:
+                          swipeStartX = event.getX();
+                          swipeStartY = event.getY();
+                          swipeStartTime = System.currentTimeMillis();
+                          return false;
+                      case android.view.MotionEvent.ACTION_MOVE:
+                          if (swipeStartX < 0) return false;
+                          float deltaX = event.getX() - swipeStartX;
+                          float deltaY = Math.abs(event.getY() - swipeStartY);
+                          long elapsed = System.currentTimeMillis() - swipeStartTime;
+                          boolean fromLeft = swipeStartX < edgeThreshold && deltaX > 120 && deltaY < 180 && elapsed < 600;
+                          boolean fromRight = swipeStartX > (screenWidth - edgeThreshold) && deltaX < -120 && deltaY < 180 && elapsed < 600;
+                          if (fromLeft || fromRight) {
+                              try {
+                                  bridge.evalJs("if(window.goBack){window.goBack();}");
+                              } catch (Exception e) {
+                                  e.printStackTrace();
+                              }
+                              swipeStartX = -1;
+                              return true;
+                          }
+                          return false;
+                      case android.view.MotionEvent.ACTION_UP:
+                      case android.view.MotionEvent.ACTION_CANCEL:
+                          swipeStartX = -1;
+                          return false;
+                      default:
+                          return false;
+                  }
               }
 
               @Override
