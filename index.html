@@ -3387,33 +3387,72 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 </script>
 <script>
 (function () {
-  var APP_VERSION = '1.0.0';
-  var URL = 'https://sudanese-mafia-server.onrender.com/api/config';
+  var API = 'https://sudanese-mafia-server.onrender.com/api/check';
+  var VERSION = '1.0.0';
 
-  function older(a, b) {
-    var x = a.split('.').map(Number), y = b.split('.').map(Number);
-    for (var i = 0; i < 3; i++) {
-      if ((x[i] || 0) < (y[i] || 0)) return true;
-      if ((x[i] || 0) > (y[i] || 0)) return false;
-    }
-    return false;
+  function store(k, v) {
+    try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; }
+  }
+  var device = store('app_device');
+  if (!device) {
+    device = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    store('app_device', device);
   }
 
-  function block(msg) {
-    var d = document.createElement('div');
-    d.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;font:20px sans-serif';
-    d.textContent = msg;
-    document.body.appendChild(d);
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0b0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font:18px sans-serif;direction:rtl';
+  var msg = document.createElement('div');
+  var inp = document.createElement('input');
+  var btn = document.createElement('button');
+  inp.placeholder = 'أدخل الرمز';
+  inp.style.cssText = 'width:100%;max-width:320px;padding:14px;font-size:20px;text-align:center;border-radius:10px;border:1px solid #444;background:#1a1a22;color:#fff;direction:ltr';
+  btn.style.cssText = 'padding:14px 36px;font-size:18px;border:0;border-radius:10px;background:#2e7d32;color:#fff';
+  ov.appendChild(msg); ov.appendChild(inp); ov.appendChild(btn);
+  document.body.appendChild(ov);
+
+  function ui(text, mode) {
+    msg.textContent = text;
+    inp.style.display = mode === 'code' ? '' : 'none';
+    btn.style.display = mode ? '' : 'none';
+    btn.textContent = mode === 'code' ? 'دخول' : 'إعادة المحاولة';
+    btn.onclick = function () {
+      if (mode === 'code') { var c = inp.value.trim(); if (c) check(c); }
+      else start();
+    };
   }
 
-  fetch(URL)
-    .then(function (r) { return r.json(); })
-    .then(function (cfg) {
-      if (cfg.enabled === false) block(cfg.message || 'التطبيق متوقف مؤقتاً');
-      else if (cfg.min_version && older(APP_VERSION, cfg.min_version)) block('يرجى تحديث التطبيق');
-      else if (cfg.message) alert(cfg.message);
+  function check(code) {
+    ui('جاري الاتصال بالسيرفر... (قد يستغرق دقيقة)', null);
+    var ctl = new AbortController();
+    var t = setTimeout(function () { ctl.abort(); }, 70000);
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code, device: device, version: VERSION }),
+      signal: ctl.signal
     })
-    .catch(function () {});
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        clearTimeout(t);
+        if (d && d.ok === true) {
+          store('app_code', code);
+          ov.style.display = 'none';
+          if (d.message) alert(d.message);
+        } else {
+          ui((d && d.message) || 'تعذر التحقق', 'code');
+        }
+      })
+      .catch(function () {
+        clearTimeout(t);
+        ui('تعذر الاتصال بالسيرفر. هذا التطبيق يحتاج اتصالاً بالإنترنت.', 'retry');
+      });
+  }
+
+  function start() {
+    var saved = store('app_code');
+    if (saved) check(saved); else ui('أدخل رمز التفعيل', 'code');
+  }
+  start();
 })();
 </script>
 </body>
