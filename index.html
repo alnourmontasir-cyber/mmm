@@ -3386,12 +3386,23 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 })();
 </script>
 <script>
+/* التحقق من الرمز + المزامنة المباشرة مع السيرفر.
+   - لا تظهر أي شاشة اتصال/عدم اتصال إطلاقاً.
+   - الشاشات الوحيدة: شاشة الرمز (أول فتح فقط)، شاشة التعطيل، والرسالة المنبثقة.
+   - إن كان الإنترنت مقطوعاً أو السيرفر نائماً: يبقى التطبيق ينتظر بصمت عند أول تفاعل
+     حتى يتوفر الاتصال، ثم يكمل تلقائياً.
+   - لا يُرسل أي محتوى من التطبيق: فقط الرمز ومعرّف الجهاز ورقم الإصدار. */
 (function () {
   var API = 'https://sudanese-mafia-server.onrender.com/api/check';
   var VERSION = '1.0.0';
+  var SYNC_MS = 2000;       // مزامنة كل ثانيتين أثناء استخدام التطبيق
+  var TIMEOUT_MS = 70000;   // يتسع لاستيقاظ السيرفر
 
   function store(k, v) {
-    try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; }
+    try {
+      if (v === undefined) return localStorage.getItem(k);
+      if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v);
+    } catch (e) { return null; }
   }
   var device = store('app_device');
   if (!device) {
@@ -3399,60 +3410,182 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     store('app_device', device);
   }
 
-  var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0b0f;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font:18px sans-serif;direction:rtl';
-  var msg = document.createElement('div');
-  var inp = document.createElement('input');
-  var btn = document.createElement('button');
-  inp.placeholder = 'أدخل الرمز';
-  inp.style.cssText = 'width:100%;max-width:320px;padding:14px;font-size:20px;text-align:center;border-radius:10px;border:1px solid #444;background:#1a1a22;color:#fff;direction:ltr';
-  btn.style.cssText = 'padding:14px 36px;font-size:18px;border:0;border-radius:10px;background:#2e7d32;color:#fff';
-  ov.appendChild(msg); ov.appendChild(inp); ov.appendChild(btn);
-  document.body.appendChild(ov);
+  var verified = false;     // تم التحقق في هذه الجلسة
+  var overlayOn = false;    // شاشة الرمز أو التعطيل ظاهرة
+  var inFlight = false;
+  var timer = null;
+  var failN = 0;
+  var ov = null, ovMsg = null, ovInp = null, ovBtn = null;
 
-  function ui(text, mode) {
-    msg.textContent = text;
-    inp.style.display = mode === 'code' ? '' : 'none';
-    btn.style.display = mode ? '' : 'none';
-    btn.textContent = mode === 'code' ? 'دخول' : 'إعادة المحاولة';
-    btn.onclick = function () {
-      if (mode === 'code') { var c = inp.value.trim(); if (c) check(c); }
-      else start();
-    };
+  /* ---------- حاجز صامت: يمنع التفاعل فقط حتى يتم التحقق (بلا أي عنصر مرئي) ---------- */
+  function gate(e) {
+    if (verified || overlayOn) return;
+    if (ov && e.target && ov.contains(e.target)) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+  }
+  ['click', 'dblclick', 'touchstart', 'touchmove', 'touchend', 'pointerdown', 'pointerup',
+   'mousedown', 'mouseup', 'keydown', 'keyup', 'submit', 'wheel'].forEach(function (t) {
+    window.addEventListener(t, gate, { capture: true, passive: false });
+  });
+
+  /* ---------- الشاشات ---------- */
+  function buildOverlay() {
+    if (ov) return;
+    ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#0b0b0f;color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font:18px sans-serif;direction:rtl';
+    ovMsg = document.createElement('div');
+    ovMsg.style.cssText = 'max-width:420px;line-height:1.7;white-space:pre-wrap';
+    ovInp = document.createElement('input');
+    ovInp.placeholder = 'أدخل الرمز';
+    ovInp.autocapitalize = 'characters'; ovInp.autocomplete = 'off';
+    ovInp.style.cssText = 'width:100%;max-width:320px;padding:14px;font-size:20px;text-align:center;border-radius:10px;border:1px solid #444;background:#1a1a22;color:#fff;direction:ltr';
+    ovBtn = document.createElement('button');
+    ovBtn.textContent = 'دخول';
+    ovBtn.style.cssText = 'padding:14px 36px;font-size:18px;border:0;border-radius:10px;background:#2e7d32;color:#fff';
+    ovBtn.onclick = submitCode;
+    ovInp.onkeydown = function (e) { if (e.key === 'Enter') submitCode(); };
+    ov.appendChild(ovMsg); ov.appendChild(ovInp); ov.appendChild(ovBtn);
+    document.body.appendChild(ov);
+  }
+  function showCodeScreen(text) {
+    buildOverlay();
+    ovMsg.textContent = text || 'أدخل رمز التفعيل';
+    ovInp.style.display = ''; ovBtn.style.display = '';
+    ovBtn.disabled = false; ovBtn.style.opacity = '1';
+    ov.style.display = 'flex'; overlayOn = true;
+  }
+  function showDisabledScreen(text) {
+    buildOverlay();
+    ovMsg.textContent = text || 'التطبيق متوقف حالياً';
+    ovInp.style.display = 'none'; ovBtn.style.display = 'none';
+    ov.style.display = 'flex'; overlayOn = true;
+  }
+  function hideOverlay() { if (ov) ov.style.display = 'none'; overlayOn = false; }
+
+  function popup(text) {
+    if (!document.getElementById('amsg-css')) {
+      var st = document.createElement('style'); st.id = 'amsg-css';
+      st.textContent = '@keyframes amIn{from{opacity:0;transform:translateY(-14px) scale(.96)}to{opacity:1;transform:none}}@keyframes amBar{from{width:100%}to{width:0}}';
+      document.head.appendChild(st);
+    }
+    var w = document.createElement('div');
+    w.style.cssText = 'position:fixed;left:0;right:0;top:0;z-index:2147483646;display:flex;justify-content:center;padding:max(14px,env(safe-area-inset-top)) 14px 0;direction:rtl;pointer-events:none';
+    var c = document.createElement('div');
+    c.style.cssText = 'pointer-events:auto;width:100%;max-width:420px;background:linear-gradient(180deg,#232634,#171923);color:#fff;border:1px solid #343a4e;border-radius:18px;box-shadow:0 18px 50px rgba(0,0,0,.55);overflow:hidden;animation:amIn .35s ease;font-family:system-ui,sans-serif';
+    var in_ = document.createElement('div');
+    in_.style.cssText = 'display:flex;gap:12px;align-items:flex-start;padding:16px 16px 14px';
+    var ic = document.createElement('div'); ic.textContent = '🔔';
+    ic.style.cssText = 'flex:0 0 38px;height:38px;border-radius:12px;background:linear-gradient(140deg,#7c6cf0,#4f7dfb);display:flex;align-items:center;justify-content:center;font-size:19px';
+    var col = document.createElement('div'); col.style.cssText = 'flex:1;min-width:0';
+    var h = document.createElement('div'); h.textContent = 'رسالة من الإدارة'; h.style.cssText = 'font-size:13px;color:#9aa0b4;margin-bottom:3px';
+    var t = document.createElement('div'); t.textContent = text; t.style.cssText = 'font-size:17px;line-height:1.6;white-space:pre-wrap;word-break:break-word';
+    col.appendChild(h); col.appendChild(t); in_.appendChild(ic); in_.appendChild(col);
+    var bar = document.createElement('div'); bar.style.cssText = 'height:4px;background:linear-gradient(90deg,#7c6cf0,#4f7dfb);animation:amBar 5s linear forwards;margin-right:auto';
+    c.appendChild(in_); c.appendChild(bar); w.appendChild(c); document.body.appendChild(w);
+    setTimeout(function () {
+      c.style.transition = 'opacity .3s,transform .3s'; c.style.opacity = '0'; c.style.transform = 'translateY(-10px)';
+      setTimeout(function () { if (w.parentNode) w.parentNode.removeChild(w); }, 320);
+    }, 5000);
   }
 
-  function check(code) {
-    ui('جاري الاتصال بالسيرفر... (قد يستغرق دقيقة)', null);
-    var ctl = new AbortController();
-    var t = setTimeout(function () { ctl.abort(); }, 70000);
-    fetch(API, {
+  /* إعدادات تصل من الإدارة: تُحفظ وتُنشر للتطبيق (window.REMOTE_SETTINGS + حدث remote-settings) */
+  var lastSet = '';
+  function applySettings(o) {
+    try {
+      var j = JSON.stringify(o || {});
+      if (j === lastSet) return; lastSet = j;
+      store('remote_settings', j); window.REMOTE_SETTINGS = o || {};
+      window.dispatchEvent(new CustomEvent('remote-settings', { detail: o || {} }));
+    } catch (e) {}
+  }
+
+  /* ---------- الاتصال ---------- */
+  /* يرجع: {net:true} عند فشل شبكي/سيرفر نائم (يُعاد بصمت)، أو الرد الكامل من السيرفر */
+  function ask(code, pt) {
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctl) ctl.abort(); }, TIMEOUT_MS);
+    return fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: code, device: device, version: VERSION }),
-      signal: ctl.signal
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (d) {
-        clearTimeout(t);
-        if (d && d.ok === true) {
-          store('app_code', code);
-          ov.style.display = 'none';
-          if (d.message) alert(d.message);
-        } else {
-          ui((d && d.message) || 'تعذر التحقق', 'code');
-        }
-      })
-      .catch(function () {
-        clearTimeout(t);
-        ui('تعذر الاتصال بالسيرفر. هذا التطبيق يحتاج اتصالاً بالإنترنت.', 'retry');
-      });
+      body: JSON.stringify({ code: code, device: device, version: VERSION, preview_token: pt || undefined }),
+      signal: ctl ? ctl.signal : undefined
+    }).then(function (r) {
+      clearTimeout(t);
+      if (r.status >= 500) return { net: true };
+      return r.json().catch(function () { return { net: true }; });
+    }).catch(function () { clearTimeout(t); return { net: true }; });
   }
 
-  function start() {
-    var saved = store('app_code');
-    if (saved) check(saved); else ui('أدخل رمز التفعيل', 'code');
+  function onOk(code, d) {
+    verified = true; failN = 0;
+    store('app_code', code);
+    hideOverlay();
+    applySettings(d.settings);
+    if (d.message && d.msg_id && store('app_msg') !== d.msg_id) {
+      store('app_msg', d.msg_id);
+      popup(d.message);
+    }
   }
-  start();
+
+  /* فحص بالرمز المحفوظ (صامت). يستخدم للدخول والمزامنة */
+  function syncOnce() {
+    var code = store('app_code');
+    if (!code) return;
+    if (inFlight) return;
+    inFlight = true;
+    ask(code).then(function (d) {
+      inFlight = false;
+      if (d && d.net || (d && d.reason === 'busy') || (d && d.reason === 'bad_request')) {
+        failN++; schedule(Math.min(1000 * failN, 5000)); return;   // صمت وإعادة محاولة
+      }
+      if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
+      verified = false;
+      if (d && d.reason === 'bad_code') {            // الرمز حُذف من السيرفر
+        store('app_code', null);
+        showCodeScreen(d.message);
+        return;
+      }
+      showDisabledScreen((d && d.message) || 'التطبيق متوقف حالياً');
+      schedule(SYNC_MS);                             // يبقى يزامن ليُفتح فور إعادة التشغيل
+    });
+  }
+  function schedule(ms) {
+    clearTimeout(timer);
+    timer = setTimeout(function () { if (document.hidden) { schedule(SYNC_MS); return; } syncOnce(); }, ms);
+  }
+  function kick() { clearTimeout(timer); syncOnce(); }
+
+  /* إدخال الرمز لأول مرة: ينتظر بصمت حتى يصل رد حقيقي من السيرفر */
+  function submitCode() {
+    var code = (ovInp.value || '').trim();
+    if (!code) return;
+    ovBtn.disabled = true; ovBtn.style.opacity = '.5';
+    (function go() {
+      ask(code).then(function (d) {
+        if (d && d.net) { setTimeout(go, 1500); return; }   // صمت حتى يتوفر الاتصال
+        if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
+        ovMsg.textContent = (d && d.message) || 'تعذر التحقق';
+        ovBtn.disabled = false; ovBtn.style.opacity = '1';
+      });
+    })();
+  }
+
+  /* ---------- بدء التشغيل ---------- */
+  document.addEventListener('visibilitychange', function () { if (!document.hidden && store('app_code')) kick(); });
+  window.addEventListener('online', function () { if (store('app_code')) kick(); });
+  window.addEventListener('focus', function () { if (store('app_code') && verified) kick(); });
+
+  var mt = /[?&]pt=([^&]+)/.exec(location.search), mc = /[?&]pc=([^&]+)/.exec(location.search);
+  if (mt) {   // فتح من لوحة التحكم: بلا شاشات ولا ربط جهاز، فقط مزامنة الإعدادات
+    verified = true;
+    (function pv() {
+      ask(decodeURIComponent(mc ? mc[1] : ''), decodeURIComponent(mt[1])).then(function (d) {
+        if (d && d.ok === true) applySettings(d.settings);
+        setTimeout(pv, SYNC_MS);
+      });
+    })();
+  } else if (store('app_code')) syncOnce();   // لا شاشة: التطبيق يعمل عادي ويتحقق بصمت
+  else showCodeScreen('أدخل رمز التفعيل'); // أول فتح فقط
 })();
 </script>
 </body>
