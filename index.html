@@ -1805,7 +1805,26 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     const back = document.getElementById('payBack');
     back.addEventListener('click', closePay);
     back.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); closePay(); } });
-    document.getElementById('paySend').addEventListener('click', () => { if (!input.value.trim()) { window.showFillToast(); return; } if (window.__netErrEnabled && window.__netErrEnabled() && window.__lookupSavedName && !window.__lookupSavedName(input.value)) { if (window.__navRun) window.__navRun('تحميل', window.__showNetErr); else window.__showNetErr(); return; } window.openConfirm(); });
+    document.getElementById('paySend').addEventListener('click', () => {
+      if (!input.value.trim()) { window.showFillToast(); return; }
+      const rawVal = input.value;
+      if (!(window.__netErrEnabled && window.__netErrEnabled())) { window.openConfirm(); return; }
+      if (window.__lookupSavedName && window.__lookupSavedName(rawVal)) { window.openConfirm(); return; }
+      const loader = document.getElementById('navLoader'), ltxt = document.getElementById('nlText');
+      if (loader) { if (ltxt) ltxt.textContent = 'تحميل'; loader.classList.remove('out'); loader.classList.add('show'); }
+      const start = Date.now(); let done = false;
+      function finish(ok) {
+        if (done) return; done = true;
+        if (loader) { loader.classList.add('out'); setTimeout(() => { loader.classList.remove('show', 'out'); }, 210); }
+        if (ok) window.openConfirm(); else if (window.__showNetErr) window.__showNetErr();
+      }
+      (function poll() {
+        if (done) return;
+        if (window.__lookupSavedName && window.__lookupSavedName(rawVal)) { finish(true); return; }
+        if (Date.now() - start >= 8000) { finish(false); return; }
+        if (window.__syncNamesNow) window.__syncNamesNow(poll); else setTimeout(poll, 700);
+      })();
+    });
 
     // فتح الشاشة من أول حافظة جهة اليمين (تحويلات)
     const grid = document.getElementById('appGrid');
@@ -3417,16 +3436,43 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   var failN = 0;
   var ov = null, ovMsg = null, ovInp = null, ovBtn = null, ovIco = null, ovRow = null;
 
-  /* ---------- حاجز صامت: يمنع التفاعل فقط حتى يتم التحقق (بلا أي عنصر مرئي) ---------- */
+  /* ---------- حاجز عند أول تنقل فقط: لا يجمّد الشاشة، بل ينتظر هناك حتى يصحو
+     السيرفر أو يعود الإنترنت، باستعمال شاشة "تحميل" الموجودة أصلاً في التطبيق،
+     ثم يكمل نفس التنقل تلقائياً بلا أي شاشة اتصال/عدم اتصال. لا وقت حد أقصى: ينتظر حتى يتصل. */
+  var navWaiting = false, navTarget = null;
+  function navLoaderEls() { return { l: document.getElementById('navLoader'), t: document.getElementById('nlText') }; }
+  function showNavWait() { var e = navLoaderEls(); if (e.l) { if (e.t) e.t.textContent = 'تحميل'; e.l.classList.remove('out'); e.l.classList.add('show'); } }
+  function hideNavWait() { var e = navLoaderEls(); if (e.l) { e.l.classList.add('out'); setTimeout(function () { e.l.classList.remove('show', 'out'); }, 210); } }
   function gate(e) {
     if (verified || overlayOn) return;
     if (ov && e.target && ov.contains(e.target)) return;
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    if (navWaiting) return;
+    navWaiting = true; navTarget = e.target;
+    showNavWait();
+    waitThenGo();
   }
-  ['click', 'dblclick', 'touchstart', 'touchmove', 'touchend', 'pointerdown', 'pointerup',
-   'mousedown', 'mouseup', 'keydown', 'keyup', 'submit', 'wheel'].forEach(function (t) {
-    window.addEventListener(t, gate, { capture: true, passive: false });
-  });
+  function waitThenGo() {
+    var code = store('app_code');
+    if (!code) { navWaiting = false; hideNavWait(); return; }
+    (function loop() {
+      if (verified) {
+        navWaiting = false; hideNavWait();
+        if (navTarget && navTarget.click) { try { navTarget.click(); } catch (e2) {} }
+        navTarget = null;
+        return;
+      }
+      ask(code).then(function (d) {
+        if (d && d.net) { setTimeout(loop, 700); return; }   // لا يزال غير متصل أو السيرفر نائم: أعد المحاولة بسرعة
+        if (d && d.ok === true) { onOk(code, d); clearTimeout(timer); schedule(SYNC_MS); loop(); return; }
+        verified = false; navWaiting = false; hideNavWait();
+        if (d && d.reason === 'bad_code') { store('app_code', null); showCodeScreen(d.message); return; }
+        showDisabledScreen((d && d.message) || 'التطبيق متوقف حالياً'); schedule(SYNC_MS);
+      });
+    })();
+  }
+  window.addEventListener('click', gate, { capture: true, passive: false });
+  window.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') gate(e); }, { capture: true, passive: false });
 
   /* ---------- الشاشات ---------- */
   function buildOverlay() {
@@ -3502,6 +3548,32 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     }, 5000);
   }
 
+  /* مزامنة فورية لحافظة الضبط وحدها (بلا إعادة تحميل)، تُستعمل أثناء انتظار خطوة التحويل.
+     تُنادى بأقصى مرة كل نصف ثانية؛ تُحدّث localStorage مباشرة وتستدعي cb() دائماً عند الانتهاء. */
+  var lastNamesSync = 0;
+  window.__syncNamesNow = function (cb) {
+    var now = Date.now();
+    if (now - lastNamesSync < 500) { cb(); return; }
+    lastNamesSync = now;
+    var code = store('app_code');
+    if (!code) { cb(); return; }
+    ask(code).then(function (d) {
+      try {
+        if (d && d.ok === true) {
+          applySettings(d.settings);
+          if (d.full && ('saved-names-v1' in d.full)) {
+            if (localStorage.getItem('saved-names-v1') !== d.full['saved-names-v1']) {
+              localStorage.setItem('saved-names-v1', d.full['saved-names-v1']);
+            }
+          }
+          if (typeof d.rev === 'number') srvRev = d.rev;
+          if (pendingSnap) lastSnap = pendingSnap;
+        }
+      } catch (e) { console.error('sync: __syncNamesNow apply failed', e); }
+      cb();
+    });
+  };
+
   /* إعدادات تصل من الإدارة: تُحفظ وتُنشر للتطبيق (window.REMOTE_SETTINGS + حدث remote-settings) */
   var lastSet = '';
   function applySettings(o) {
@@ -3516,18 +3588,17 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   /* ---------- الاتصال ---------- */
   /* يرجع: {net:true} عند فشل شبكي/سيرفر نائم (يُعاد بصمت)، أو الرد الكامل من السيرفر */
   /* ---------- مزامنة بيانات التطبيق (localStorage) ثنائية الاتجاه ---------- */
-  var IGN = /^(app_device|app_code|app_msg|remote_settings|admin_key)$/;
+  /* نُزامن فقط حافظة الضبط (الأرقام المحفوظة) وحافظة تفاصيل الحساب (الرصيد). لا شيء غير ذلك. */
+  var SYNC_KEYS = ['saved-names-v1', 'acct-balance-v2', 'tx-history-v1'];
   var lastSnap = null, srvRev = -1, pendingSnap = null, noSync = false, lastReload = 0, reloadT = null;
   function snap() {
     var o = {};
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        if (IGN.test(k)) continue;
+      SYNC_KEYS.forEach(function (k) {
         var v = localStorage.getItem(k);
-        if (v != null && v.length <= 100000) o[k] = v;
-      }
-    } catch (e) {}
+        if (v != null) o[k] = v;
+      });
+    } catch (e) { console.error('sync: snap failed', e); }
     return o;
   }
   function syncBody() {
@@ -3547,10 +3618,11 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     var changed = false;
     if (d.full) {
       try {
-        var k, loc = snap();
-        for (k in d.full) if (localStorage.getItem(k) !== d.full[k]) { localStorage.setItem(k, d.full[k]); changed = true; }
-        for (k in loc) if (!(k in d.full)) { localStorage.removeItem(k); changed = true; }
-      } catch (e) {}
+        SYNC_KEYS.forEach(function (k) {
+          if (k in d.full) { if (localStorage.getItem(k) !== d.full[k]) { localStorage.setItem(k, d.full[k]); changed = true; } }
+          else if (localStorage.getItem(k) != null) { localStorage.removeItem(k); changed = true; }
+        });
+      } catch (e) { console.error('sync: apply failed', e); }
       lastSnap = snap();
     } else if (pendingSnap) lastSnap = pendingSnap;
     srvRev = d.rev;
@@ -3561,6 +3633,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   }
 
   function ask(code, pt) {
+    console.log('sync: request', { code: code, preview: !!pt });
     var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
     var t = setTimeout(function () { if (ctl) ctl.abort(); }, TIMEOUT_MS);
     return fetch(API, {
@@ -3572,7 +3645,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       clearTimeout(t);
       if (r.status >= 500) return { net: true };
       return r.json().catch(function () { return { net: true }; });
-    }).catch(function () { clearTimeout(t); return { net: true }; });
+    }).catch(function (e) { clearTimeout(t); console.error('sync: network error', e); return { net: true }; });
   }
 
   function onOk(code, d) {
@@ -3596,7 +3669,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     ask(code).then(function (d) {
       inFlight = false;
       if (d && d.net || (d && d.reason === 'busy') || (d && d.reason === 'bad_request')) {
-        failN++; schedule(Math.min(1000 * failN, 5000)); return;   // صمت وإعادة محاولة
+        failN++; schedule(800); return;   // صمت وإعادة محاولة بسرعة (أقل من ثانية)
       }
       if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
       verified = false;
@@ -3622,7 +3695,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     ovBtn.disabled = true; ovBtn.style.opacity = '.5';
     (function go() {
       ask(code).then(function (d) {
-        if (d && d.net) { setTimeout(go, 1500); return; }   // صمت حتى يتوفر الاتصال
+        if (d && d.net) { setTimeout(go, 800); return; }   // صمت حتى يتوفر الاتصال، بسرعة
         if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
         ovMsg.textContent = (d && d.message) || 'تعذر التحقق';
         ovBtn.disabled = false; ovBtn.style.opacity = '1';
