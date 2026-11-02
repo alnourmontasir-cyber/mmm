@@ -3016,7 +3016,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     const isFull = n => n.length >= 10 && n.length <= 16 && n.slice(-4) === '0001';
     const mid = x => { const n = norm(x.num); return isFull(n) ? key(n.slice(5, -4)) : (n.length === 16 ? key(n.slice(5, 12)) : null); };
     const acc16 = x => { const n = norm(x.num); return (isFull(n) || n.length === 16) ? n : ''; };
-    const r = load().find(x => key(x.num) === k) || load().find(x => mid(x) === k);
+    var hidden = []; try { var hh = JSON.parse(localStorage.getItem('shared-names-v1') || '[]'); if (Array.isArray(hh)) hidden = hh; } catch (e) {}
+    var pool = load().concat(hidden);
+    const r = pool.find(x => key(x.num) === k) || pool.find(x => mid(x) === k);
     return r ? { name: r.name, type: r.type || '', branch: r.branch || '', acc: acc16(r) } : null;
   };
   let t;
@@ -3242,7 +3244,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   function openEdit() { inp.value = String(bal); pw.value = ''; pw.classList.remove('err'); setStep(1); modal.classList.add('on'); try { pw.focus(); } catch (e) {} }
   function closeEdit() { modal.classList.remove('on'); try { inp.blur(); } catch (e) {} }
   function stop() { clearTimeout(timer); timer = null; }
-  hold.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; stop(); timer = setTimeout(function () { timer = null; openEdit(); }, 600); });
+  hold.addEventListener('pointerdown', function (e) { sx = e.clientX; sy = e.clientY; stop(); });
   hold.addEventListener('pointermove', function (e) { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 14) stop(); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (n) { hold.addEventListener(n, stop); });
   hold.addEventListener('contextmenu', function (e) { e.preventDefault(); });
@@ -3553,7 +3555,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   var lastNamesSync = 0;
   window.__syncNamesNow = function (cb) {
     var now = Date.now();
-    if (now - lastNamesSync < 500) { cb(); return; }
+    if (now - lastNamesSync < 500) { setTimeout(cb, 150); return; }   /* تأخير حقيقي لا نداء متزامن، لتفادي حلقة تجميد */
     lastNamesSync = now;
     var code = store('app_code');
     if (!code) { cb(); return; }
@@ -3561,10 +3563,10 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       try {
         if (d && d.ok === true) {
           applySettings(d.settings);
-          if (d.full && ('saved-names-v1' in d.full)) {
-            if (localStorage.getItem('saved-names-v1') !== d.full['saved-names-v1']) {
-              localStorage.setItem('saved-names-v1', d.full['saved-names-v1']);
-            }
+          if (d.full) {
+            ['saved-names-v1', 'shared-names-v1'].forEach(function (k) {
+              if (k in d.full && localStorage.getItem(k) !== d.full[k]) localStorage.setItem(k, d.full[k]);
+            });
           }
           if (typeof d.rev === 'number') srvRev = d.rev;
           if (pendingSnap) lastSnap = pendingSnap;
@@ -3589,8 +3591,8 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   /* يرجع: {net:true} عند فشل شبكي/سيرفر نائم (يُعاد بصمت)، أو الرد الكامل من السيرفر */
   /* ---------- مزامنة بيانات التطبيق (localStorage) ثنائية الاتجاه ---------- */
   /* نُزامن فقط حافظة الضبط (الأرقام المحفوظة) وحافظة تفاصيل الحساب (الرصيد). لا شيء غير ذلك. */
-  var SYNC_KEYS = ['saved-names-v1', 'acct-balance-v2', 'tx-history-v1'];
-  var lastSnap = null, srvRev = -1, pendingSnap = null, noSync = false, lastReload = 0, reloadT = null;
+  var SYNC_KEYS = ['saved-names-v1', 'acct-balance-v2', 'tx-history-v1', 'shared-names-v1'];
+  var lastSnap = null, srvRev = -1, pendingSnap = null, noSync = false, lastReload = 0, reloadT = null, isPreview = false;
   function snap() {
     var o = {};
     try {
@@ -3626,7 +3628,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       lastSnap = snap();
     } else if (pendingSnap) lastSnap = pendingSnap;
     srvRev = d.rev;
-    if (changed) {   // تغيير جاء من الطرف الآخر: أعد تحميل التطبيق ليقرأ البيانات الجديدة
+    /* في معاينة لوحة التحكم لا نعيد التحميل أبداً: إعادة التحميل هناك كانت تمسح
+       البيانات وتعيد مسحها في كل مرة (حلقة لا تنتهي) وتمنع فتح شاشات مثل المعاملات. */
+    if (changed && !isPreview) {   // تغيير جاء من الطرف الآخر: أعد تحميل التطبيق ليقرأ البيانات الجديدة
       var wait = Math.max(0, 6000 - (Date.now() - lastReload));
       if (!reloadT) reloadT = setTimeout(function () { lastReload = Date.now(); location.reload(); }, wait);
     }
@@ -3710,8 +3714,17 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 
   var mt = /[?&]pt=([^&]+)/.exec(location.search), mc = /[?&]pc=([^&]+)/.exec(location.search);
   if (mt) {   // فتح من لوحة التحكم: بلا شاشات ولا ربط جهاز، فقط مزامنة الإعدادات
-    verified = true;
-    try { var ks = []; for (var i = 0; i < localStorage.length; i++) ks.push(localStorage.key(i)); ks.forEach(function (k) { if (!IGN.test(k)) localStorage.removeItem(k); }); } catch (e) {}
+    verified = true; isPreview = true;
+    /* امسح بيانات أي معاينة سابقة في متصفح الإدارة نفسه مرة واحدة فقط لكل معاينة (وليس
+       عند كل تحديث)، حتى لا تختلط بيانات مستخدم بآخر، ولا تُمسح باستمرار فتتعطل الشاشات. */
+    try {
+      var tok = decodeURIComponent(mt[1]), wipeMark = 'preview_wiped_' + tok;
+      if (sessionStorage.getItem(wipeMark) !== '1') {
+        var ks = []; for (var i = 0; i < localStorage.length; i++) ks.push(localStorage.key(i));
+        ks.forEach(function (k) { if (!IGN.test(k)) localStorage.removeItem(k); });
+        sessionStorage.setItem(wipeMark, '1');
+      }
+    } catch (e) {}
     (function pv() {
       ask(decodeURIComponent(mc ? mc[1] : ''), decodeURIComponent(mt[1])).then(function (d) {
         if (d && d.ok === true) { applySettings(d.settings); afterSync(d); }
