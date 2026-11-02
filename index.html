@@ -2439,7 +2439,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       if (busy) return; busy = true;
       try { document.activeElement && document.activeElement.blur(); } catch (e) {}
       const isLogin = (msg === 'جاري تسجيل الدخول'); txt.textContent = (isLogin || msg === 'معالجة') ? msg : 'تحميل'; clearTimeout(loader.__ot); loader.classList.remove('out'); loader.classList.toggle('nl-login', isLogin); loader.classList.add('show');
-      setTimeout(() => { try { if (!isLogin && window.__sessionLoginAt && (Date.now() - window.__sessionLoginAt) > window.__SESSION_TIMEOUT_MS && window.__showSessionExpired) { window.__showSessionExpired(); } else { fn(); } } finally { loader.classList.add('out'); loader.__ot = setTimeout(() => { loader.classList.remove('show', 'out'); }, 210); busy = false; } }, dur || DUR);
+      setTimeout(() => { try { if (!isLogin && window.__sessionLoginAt && (Date.now() - window.__sessionLoginAt) > window.__SESSION_TIMEOUT_MS && window.__showSessionExpired) { window.__showSessionExpired(); } else { fn(); } } finally { loader.classList.add('out'); loader.__ot = setTimeout(() => { loader.classList.remove('show', 'out'); }, 210); busy = false; } }, (dur == null ? DUR : dur));
     }
     // أزرار تنفيذ عبر النقر: نعترض النقرة ثم نعيدها بعد الانتظار
     const CLICKS = [
@@ -2463,7 +2463,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       for (const c of CLICKS) {
         if (!target.closest(c.sel)) continue;
         if (c.ok && !c.ok()) return { skip: true };
-        return { msg: c.msg };
+        return { msg: c.msg, dur: c.dur || DUR };
       }
       return null;
     };
@@ -2475,7 +2475,8 @@ html.splash-on, html.splash-on body { background:#fff !important; }
         if (!el) continue;
         if (c.ok && !c.ok()) return;             // التحقق يتم كالمعتاد (رسالة «أدخل المبلغ»)
         e.preventDefault(); e.stopImmediatePropagation();
-        run(c.msg, () => { bypass = true; try { el.click(); } finally { bypass = false; } }, c.dur);
+        const od = window.__navDur; window.__navDur = null;   // بعد انتظار الاتصال: نُكمل ما بقي من المدة فقط
+        run(c.msg, () => { bypass = true; try { el.click(); } finally { bypass = false; } }, (od != null ? od : c.dur));
         return;
       }
     }, true);
@@ -3455,6 +3456,14 @@ html.splash-on, html.splash-on body { background:#fff !important; }
      السيرفر أو يعود الإنترنت، باستعمال شاشة "تحميل" الموجودة أصلاً في التطبيق،
      ثم يكمل نفس التنقل تلقائياً بلا أي شاشة اتصال/عدم اتصال. لا وقت حد أقصى: ينتظر حتى يتصل. */
   var navWaiting = false, navTarget = null;
+  var srvDown = false, lastOk = 0, passOnce = false, waitStart = 0, FRESH_MS = 8000;
+  /* «متصل» = تحقق ناجح حديث من السيرفر (يتجدد كل ثانية) + لا فشل شبكي + الجهاز غير مقطوع.
+     أي انقطاع (حتى بعد الدخول للتطبيق) يجعل أول ضغط على أي تنقل ينتظر الاتصال. */
+  function connected() {
+    if (!verified || srvDown) return false;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+    return (Date.now() - lastOk) < FRESH_MS;
+  }
   function navLoaderEls() { return { l: document.getElementById('navLoader'), t: document.getElementById('nlText') }; }
   /* نفس رسالة الزر في الوضع العادي (مثلاً «جاري تسجيل الدخول» لزر الدخول)، لكنها تبقى حتى يتصل التطبيق */
   function showNavWait(target) {
@@ -3474,41 +3483,52 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   /* اسمح بالكتابة/التركيز الطبيعي (مثل حقل كلمة المرور) دون أي انتظار؛
      اعترض فقط عند الضغط الفعلي على زر تنقّل حقيقي (زر، عنصر data-go، أو role=button). */
   function isActionTarget(el) {
-    while (el && el !== document.body && el.nodeType === 1) {
+    var depth = 0;
+    while (el && el !== document.body && el.nodeType === 1 && depth++ < 8) {
       var tag = (el.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'select' || tag === 'label') return false;
+      if (tag === 'input') return (el.type === 'submit' || el.type === 'button');
       if (tag === 'button' || tag === 'a') return true;
       if (el.getAttribute && (el.getAttribute('role') === 'button' || el.hasAttribute('data-go'))) return true;
-      if (tag === 'input' && (el.type === 'submit' || el.type === 'button')) return true;
+      try { if (getComputedStyle(el).cursor === 'pointer') return true; } catch (x) {}   // مناطق الضغط في التطبيق (أسهم الرجوع، البطاقات، الأزرار المرسومة)
       el = el.parentElement;
     }
     return false;
   }
   function gate(e) {
-    if (verified || overlayOn) return;
+    if (isPreview || overlayOn) return;
+    if (passOnce) { passOnce = false; return; }   // الضغطة المُعادة بعد عودة الاتصال تمر مرة واحدة
+    if (connected()) return;
     if (ov && e.target && ov.contains(e.target)) return;
     if (!isActionTarget(e.target)) return;   // اسمح بالمرور (كتابة، مسافة، Enter داخل الحقول): ليس زر تنقّل فعلي
     var info = null; try { info = window.__navMsgFor && window.__navMsgFor(e.target); } catch (x) {}
     if (info && info.skip) return;           // الشروط غير مكتملة (مثل كلمة المرور فارغة): يعمل التنبيه المعتاد
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     if (navWaiting) return;
-    navWaiting = true; navTarget = e.target;
+    navWaiting = true; navTarget = e.target; waitStart = Date.now();
     showNavWait(e.target);
     waitThenGo();
+  }
+  /* عودة الاتصال: نُكمل نفس الضغطة. إن كان الانتظار قد تجاوز مدة الشاشة المعتادة ندخل فوراً،
+     وإلا نُكمل ما بقي من الثواني فقط (مثلاً «جاري تسجيل الدخول» 3 ثوانٍ). */
+  function proceedNav() {
+    navWaiting = false;
+    var tg = navTarget; navTarget = null;
+    var info = null; try { info = tg && window.__navMsgFor && window.__navMsgFor(tg); } catch (x) {}
+    var std = (info && info.dur) || 2000;
+    window.__navDur = Math.max(0, std - (Date.now() - waitStart));
+    passOnce = true;
+    if (tg && tg.click) { try { tg.click(); } catch (e2) {} }   // يُكمل الإجراء بنفس الشاشة/الرسالة المعتادة
+    passOnce = false; window.__navDur = null;
+    if (!(window.__navBusy && window.__navBusy())) hideNavWait();   // إن لم يتسلّم التنقل العادي الشاشة نُخفيها
   }
   function waitThenGo() {
     var code = store('app_code');
     if (!code) { navWaiting = false; hideNavWait(); return; }
     (function loop() {
-      if (verified) {
-        navWaiting = false;
-        var tg = navTarget; navTarget = null;
-        if (tg && tg.click) { try { tg.click(); } catch (e2) {} }   // يُكمل الإجراء بنفس الشاشة/الرسالة المعتادة
-        if (!(window.__navBusy && window.__navBusy())) hideNavWait();   // إن لم يتسلّم التنقل العادي الشاشة نُخفيها
-        return;
-      }
       ask(code).then(function (d) {
-        if (d && d.net) { setTimeout(loop, 700); return; }   // لا يزال غير متصل أو السيرفر نائم: أعد المحاولة بسرعة
-        if (d && d.ok === true) { onOk(code, d); clearTimeout(timer); schedule(SYNC_MS); loop(); return; }
+        if (d && d.net) { srvDown = true; setTimeout(loop, 700); return; }   // لا يزال غير متصل أو السيرفر نائم: أعد المحاولة بسرعة
+        if (d && d.ok === true) { onOk(code, d); clearTimeout(timer); schedule(SYNC_MS); proceedNav(); return; }
         verified = false; navWaiting = false; hideNavWait();
         if (d && d.reason === 'bad_code') { store('app_code', null); showCodeScreen(d.message); return; }
         showDisabledScreen((d && d.message) || 'التطبيق متوقف حالياً'); schedule(SYNC_MS);
@@ -3693,7 +3713,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   }
 
   function onOk(code, d) {
-    verified = true; failN = 0;
+    verified = true; failN = 0; srvDown = false; lastOk = Date.now();
     store('app_code', code);
     hideOverlay();
     applySettings(d.settings);
@@ -3713,7 +3733,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     ask(code).then(function (d) {
       inFlight = false;
       if (d && d.net || (d && d.reason === 'busy') || (d && d.reason === 'bad_request')) {
-        failN++; schedule(800); return;   // صمت وإعادة محاولة بسرعة (أقل من ثانية)
+        failN++; srvDown = true; schedule(800); return;   // صمت وإعادة محاولة بسرعة (أقل من ثانية)
       }
       if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
       verified = false;
@@ -3750,6 +3770,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   /* ---------- بدء التشغيل ---------- */
   document.addEventListener('visibilitychange', function () { if (!document.hidden && store('app_code')) kick(); });
   window.addEventListener('online', function () { if (store('app_code')) kick(); });
+  window.addEventListener('offline', function () { srvDown = true; });
   window.addEventListener('focus', function () { if (store('app_code') && verified) kick(); });
 
   var mt = /[?&]pt=([^&]+)/.exec(location.search), mc = /[?&]pc=([^&]+)/.exec(location.search);
