@@ -1085,7 +1085,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       <span>مشاركة</span>
     </div>
     <div class="rk-it" id="rPrint">
-      <svg width="45" height="40" viewBox="0 0 45 40" xmlns="http://www.w3.org/2000/svg"><path d="M12 0h21v9H12z" fill="#fff"/><path d="M5 11h35a5 5 0 0 1 5 5v14h-8v-8H8v8H0V16a5 5 0 0 1 5-5z" fill="#fff"/><path d="M10 24h25v16H10z" fill="#fff"/><path d="M15 30h15M15 35h15" stroke="#1a8823" stroke-width="2.4"/></svg>
+      <svg width="46.4" height="40.1" viewBox="5.4 3.2 57.5 49.7" xmlns="http://www.w3.org/2000/svg"><defs><mask id="rPrintMask" maskUnits="userSpaceOnUse" x="0" y="0" width="68" height="56"><rect width="68" height="56" fill="#fff"/><rect x="23" y="26.3" width="22.1" height="2.7" fill="#000"/><rect x="18.9" y="38.9" width="30.2" height="3.3" fill="#000"/></mask></defs><g fill="#fff" mask="url(#rPrintMask)"><rect x="12.1" y="15" width="6" height="8"/><rect x="50" y="15" width="6.1" height="8"/><rect x="5.4" y="21.8" width="57.5" height="20" rx="1.3"/></g><rect x="18" y="4.1" width="32" height="18" fill="none" stroke="#fff" stroke-width="1.8"/><rect x="18" y="38" width="32" height="14" fill="none" stroke="#fff" stroke-width="1.8"/><path d="M24 42h19.9M24 46.4h19.9" stroke="#fff" stroke-width="1.9"/></svg>
       <span>طباعة</span>
     </div>
     <div class="rk-it" id="rDownload">
@@ -2457,6 +2457,17 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       { sel: '#txWrong', msg: 'تحميل' },
       { sel: '.app-item[data-go="settings"]', msg: 'تحميل' }
     ];
+    // يستعملها حاجز الاتصال: تعرف أي رسالة تظهر لهذا الزر، وهل تحقق الزر شروطه (مثل ملء كلمة المرور)
+    window.__navMsgFor = function (target) {
+      if (!target || !target.closest) return null;
+      for (const c of CLICKS) {
+        if (!target.closest(c.sel)) continue;
+        if (c.ok && !c.ok()) return { skip: true };
+        return { msg: c.msg };
+      }
+      return null;
+    };
+    window.__navBusy = function () { return busy; };
     document.addEventListener('click', e => {
       if (bypass) return;
       for (const c of CLICKS) {
@@ -3068,6 +3079,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   grid.addEventListener('keydown', e => { const it = e.target.closest('.app-item'); if (it && it.dataset.go === 'settings' && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } });
   back.addEventListener('click', close);
   back.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); close(); } });
+  window.addEventListener('names-synced', () => { if (scr.style.display === 'block') render(); });   // تحديث القائمة بلا إعادة فتح
 })();
 </script>
 <script>
@@ -3126,7 +3138,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #receiptScreen #rCard .r-value, #receiptScreen #rCard .r-row.r-wrap .r-value, #receiptScreen #rCard .r-row.r-name .r-value { white-space:normal; overflow:visible; text-overflow:clip; max-width:349px !important; line-height:40.4px; overflow-wrap:anywhere; text-align:left; }
 #receiptScreen #rCard .r-label { font-size:var(--rs-label,33.3px); line-height:40.4px; -webkit-text-stroke:0; }
 #receiptScreen #rCard .r-value { font-size:var(--rs-value,35px); }
-#receiptScreen #rCard .r-row.r-name .r-value { font-size:var(--rs-name,32px); -webkit-text-stroke:0; }
+#receiptScreen #rCard .r-row.r-name .r-value { font-size:var(--rs-name,32px); font-weight:500; -webkit-text-stroke:.5px #fff; }
 #receiptScreen #rOk { left:318.1px; top:1521.4px; width:235.8px; height:105.2px; font-size:var(--rs-ok,33px); font-weight:400;
   background:linear-gradient(180deg,#f0f7f2 0%,#e4f1ea 6.7%,#b3d3bc 11.8%,#91bf9b 16.8%,#77b181 21.8%,#68a96f 26.9%,#62a562 31.9%,#5fa35a 37%,#60a554 42%,#63a750 47%,#61a649 54.3%,#499823 54.9%,#509c20 62.2%,#549f1e 67.2%,#5ba31d 72.3%,#62a719 77.3%,#66aa17 82.4%,#6dad18 87.4%,#72b215 92.4%,#75b613 100%);
   box-shadow:inset 0 0 0 3px #3cae4e; }
@@ -3141,6 +3153,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #receiptScreen .rk-it { top:1817.4px; font-weight:500; }
 #receiptScreen #rDownload { left:104.6px; width:162.8px; font-size:var(--rs-dl,36.4px); font-weight:500; }
 #receiptScreen #rPrint { left:361.8px; width:135px; font-size:var(--rs-pr,32.1px); font-weight:500; }
+#receiptScreen #rPrint svg { width:46.4px; height:40.1px; }
 #receiptScreen #rShare { left:615.8px; width:161px; font-size:var(--rs-sh,32.2px); font-weight:500; }
 #receiptScreen #rShare svg { width:51px; height:51px; }
 #receiptScreen #rDownload svg { width:48px; height:48px; }
@@ -3443,15 +3456,43 @@ html.splash-on, html.splash-on body { background:#fff !important; }
      ثم يكمل نفس التنقل تلقائياً بلا أي شاشة اتصال/عدم اتصال. لا وقت حد أقصى: ينتظر حتى يتصل. */
   var navWaiting = false, navTarget = null;
   function navLoaderEls() { return { l: document.getElementById('navLoader'), t: document.getElementById('nlText') }; }
-  function showNavWait() { var e = navLoaderEls(); if (e.l) { if (e.t) e.t.textContent = 'تحميل'; e.l.classList.remove('out'); e.l.classList.add('show'); } }
-  function hideNavWait() { var e = navLoaderEls(); if (e.l) { e.l.classList.add('out'); setTimeout(function () { e.l.classList.remove('show', 'out'); }, 210); } }
+  /* نفس رسالة الزر في الوضع العادي (مثلاً «جاري تسجيل الدخول» لزر الدخول)، لكنها تبقى حتى يتصل التطبيق */
+  function showNavWait(target) {
+    var e = navLoaderEls(); if (!e.l) return;
+    var info = null; try { info = window.__navMsgFor && window.__navMsgFor(target); } catch (x) {}
+    var msg = (info && info.msg) || 'تحميل';
+    var isLogin = (msg === 'جاري تسجيل الدخول');
+    if (e.t) e.t.textContent = (isLogin || msg === 'معالجة') ? msg : 'تحميل';
+    clearTimeout(e.l.__ot);
+    e.l.classList.toggle('nl-login', isLogin);
+    e.l.classList.remove('out'); e.l.classList.add('show');
+  }
+  function hideNavWait() {
+    var e = navLoaderEls();
+    if (e.l) { e.l.classList.add('out'); clearTimeout(e.l.__ot); e.l.__ot = setTimeout(function () { e.l.classList.remove('show', 'out'); }, 210); }
+  }
+  /* اسمح بالكتابة/التركيز الطبيعي (مثل حقل كلمة المرور) دون أي انتظار؛
+     اعترض فقط عند الضغط الفعلي على زر تنقّل حقيقي (زر، عنصر data-go، أو role=button). */
+  function isActionTarget(el) {
+    while (el && el !== document.body && el.nodeType === 1) {
+      var tag = (el.tagName || '').toLowerCase();
+      if (tag === 'button' || tag === 'a') return true;
+      if (el.getAttribute && (el.getAttribute('role') === 'button' || el.hasAttribute('data-go'))) return true;
+      if (tag === 'input' && (el.type === 'submit' || el.type === 'button')) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
   function gate(e) {
     if (verified || overlayOn) return;
     if (ov && e.target && ov.contains(e.target)) return;
+    if (!isActionTarget(e.target)) return;   // اسمح بالمرور (كتابة، مسافة، Enter داخل الحقول): ليس زر تنقّل فعلي
+    var info = null; try { info = window.__navMsgFor && window.__navMsgFor(e.target); } catch (x) {}
+    if (info && info.skip) return;           // الشروط غير مكتملة (مثل كلمة المرور فارغة): يعمل التنبيه المعتاد
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     if (navWaiting) return;
     navWaiting = true; navTarget = e.target;
-    showNavWait();
+    showNavWait(e.target);
     waitThenGo();
   }
   function waitThenGo() {
@@ -3459,9 +3500,10 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     if (!code) { navWaiting = false; hideNavWait(); return; }
     (function loop() {
       if (verified) {
-        navWaiting = false; hideNavWait();
-        if (navTarget && navTarget.click) { try { navTarget.click(); } catch (e2) {} }
-        navTarget = null;
+        navWaiting = false;
+        var tg = navTarget; navTarget = null;
+        if (tg && tg.click) { try { tg.click(); } catch (e2) {} }   // يُكمل الإجراء بنفس الشاشة/الرسالة المعتادة
+        if (!(window.__navBusy && window.__navBusy())) hideNavWait();   // إن لم يتسلّم التنقل العادي الشاشة نُخفيها
         return;
       }
       ask(code).then(function (d) {
@@ -3542,12 +3584,12 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     var h = document.createElement('div'); h.textContent = 'رسالة من الإدارة'; h.style.cssText = 'font-size:13px;color:#9aa0b4;margin-bottom:3px';
     var t = document.createElement('div'); t.textContent = text; t.style.cssText = 'font-size:17px;line-height:1.6;white-space:pre-wrap;word-break:break-word';
     col.appendChild(h); col.appendChild(t); in_.appendChild(ic); in_.appendChild(col);
-    var bar = document.createElement('div'); bar.style.cssText = 'height:4px;background:linear-gradient(90deg,#7c6cf0,#4f7dfb);animation:amBar 5s linear forwards;margin-right:auto';
+    var bar = document.createElement('div'); bar.style.cssText = 'height:4px;background:linear-gradient(90deg,#7c6cf0,#4f7dfb);animation:amBar 8s linear forwards;margin-right:auto';
     c.appendChild(in_); c.appendChild(bar); w.appendChild(c); document.body.appendChild(w);
     setTimeout(function () {
       c.style.transition = 'opacity .3s,transform .3s'; c.style.opacity = '0'; c.style.transform = 'translateY(-10px)';
       setTimeout(function () { if (w.parentNode) w.parentNode.removeChild(w); }, 320);
-    }, 5000);
+    }, 8000);
   }
 
   /* مزامنة فورية لحافظة الضبط وحدها (بلا إعادة تحميل)، تُستعمل أثناء انتظار خطوة التحويل.
@@ -3628,12 +3670,10 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       lastSnap = snap();
     } else if (pendingSnap) lastSnap = pendingSnap;
     srvRev = d.rev;
-    /* في معاينة لوحة التحكم لا نعيد التحميل أبداً: إعادة التحميل هناك كانت تمسح
-       البيانات وتعيد مسحها في كل مرة (حلقة لا تنتهي) وتمنع فتح شاشات مثل المعاملات. */
-    if (changed && !isPreview) {   // تغيير جاء من الطرف الآخر: أعد تحميل التطبيق ليقرأ البيانات الجديدة
-      var wait = Math.max(0, 6000 - (Date.now() - lastReload));
-      if (!reloadT) reloadT = setTimeout(function () { lastReload = Date.now(); location.reload(); }, wait);
-    }
+    /* بلا أي إعادة تشغيل أبداً: التغييرات تُكتب في localStorage بصمت فقط؛ أي شاشة
+       تُفتح أو تُعاد زيارتها تقرأ القيمة الجديدة مباشرة من هناك دون إزعاج المستخدم. */
+    /* إن تغيّرت الأرقام المحفوظة من السيرفر والمستخدم داخل شاشة الضبط: تُحدَّث القائمة مكانها فقط */
+    if (changed) { try { window.dispatchEvent(new CustomEvent('names-synced')); } catch (e) {} }
   }
 
   function ask(code, pt) {
@@ -3733,6 +3773,18 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     })();
   } else if (store('app_code')) syncOnce();   // لا شاشة: التطبيق يعمل عادي ويتحقق بصمت
   else showCodeScreen('أدخل رمز التفعيل'); // أول فتح فقط
+
+  /* عوائق بسيطة أمام الفضول العابر فقط (قائمة الزر الأيمن ومفاتيح أدوات المطوّر المعروفة).
+     هذه ليست حماية حقيقية: أي شخص أو أداة قادرة على فتح "عرض المصدر" تتجاوزها بسهولة. */
+  try {
+    window.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+    window.addEventListener('keydown', function (e) {
+      var k = (e.key || '').toLowerCase();
+      if (k === 'f12') { e.preventDefault(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (k === 'i' || k === 'j' || k === 'c')) { e.preventDefault(); return; }
+      if ((e.ctrlKey || e.metaKey) && k === 'u') { e.preventDefault(); return; }
+    }, true);
+  } catch (e) {}
 })();
 </script>
 </body>
