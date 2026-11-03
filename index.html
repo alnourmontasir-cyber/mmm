@@ -1089,7 +1089,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       <span>طباعة</span>
     </div>
     <div class="rk-it" id="rDownload">
-      <svg width="45" height="45" viewBox="0 0 45 45" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="22.5" r="20.5"/><path d="M22.5 11v21M13.5 24l9 9 9-9"/></svg>
+      <svg width="45" height="45" viewBox="0 0 45 45" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="22.5" cy="22.5" r="20.5"/><path d="M22.5 11v21M13.5 24l9 9 9-9"/><circle class="dl-ring" cx="22.5" cy="22.5" r="20.5" stroke="#2bd14f" stroke-width="3" stroke-linecap="butt" transform="rotate(-90 22.5 22.5)"/></svg>
       <span>تحميل</span>
     </div>
 
@@ -2125,6 +2125,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     // رسم علامة الصح مرة واحدة (الدائرة ثابتة لا تتحرك)
     let checkRaf = 0;
     function drawCheck() {
+      lastDraw = Date.now();
       const p = screen.querySelector('.rk-check path');
       cancelAnimationFrame(checkRaf);
       let L = 150; try { L = p.getTotalLength() + 2; } catch (e) {}
@@ -2144,11 +2145,18 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       const p = screen.querySelector('.rk-check path');
       if (p) { p.style.strokeDasharray = ''; p.style.strokeDashoffset = ''; }
     }
-    document.addEventListener('visibilitychange', settleCheck);
+    // عند الخروج من التطبيق تبقى العلامة مكتملة (تظهر كاملة في قائمة التطبيقات)، وعند الرجوع إليه تُرسم من جديد
+    let lastDraw = 0;
+    function replayCheck() {
+      if (getComputedStyle(screen).display === 'none') return;
+      if (Date.now() - lastDraw < 900) return;   // أحداث العودة تصل معًا (visibility/pageshow/focus): نبدأ الرسم مرة واحدة
+      drawCheck();
+    }
+    document.addEventListener('visibilitychange', () => { if (document.hidden) settleCheck(); else replayCheck(); });
     window.addEventListener('pagehide', settleCheck);
-    window.addEventListener('pageshow', settleCheck);
+    window.addEventListener('pageshow', replayCheck);
     window.addEventListener('blur', settleCheck);
-    window.addEventListener('focus', settleCheck);
+    window.addEventListener('focus', replayCheck);
 
     // عرض عمود الاسم مقيس من صورة المرجع: الاسم «معمر سليمان ابراهيم عبدالله» يكسر بعد «ابراهيم» ونزول «عبدالله» للسطر الثاني،
     // أي أن أقصى عرض للسطر ≈ 87% من عرض الجملة المرجعية كاملة. نقيسها بخط الجهاز نفسه فيبقى الحد ثابتًا مهما اختلف الخط.
@@ -2165,7 +2173,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     window.openReceipt = function (info) {
       const rows = [
         { label: 'رقم العملية', value: genTxnId() },
-        { label: 'التاريخ و الزمن', value: formatDateTime(new Date()) },
+        { label: 'التاريخ و الزمن', value: formatDateTime(new Date()), cls: 'r-dt' },
         { label: 'من حساب', value: info.from ? String(info.from).replace(/\s/g, '').replace(/(\d{4})(?=\d)/g, '$1 ') : 'N/A' },
         { label: 'الى حساب', value: toAccount(info.to) },
         { label: 'إسم المرسل اليه', value: (info.name || '').trim() || 'N/A', rtl: true, wrap: true, cls: 'r-name' },
@@ -2179,7 +2187,9 @@ html.splash-on, html.splash-on body { background:#fff !important; }
         row.className = 'r-row';
         if (r.rtl) row.setAttribute('data-rtl', '1'); if (r.wrap) row.classList.add('r-wrap'); if (r.cls) row.classList.add(r.cls);
         const lbl = document.createElement('span'); lbl.className = 'r-label'; lbl.textContent = r.label;
-        const val = document.createElement('span'); val.className = 'r-value'; val.textContent = r.value;
+        const val = document.createElement('span'); val.className = 'r-value';
+        if (r.cls === 'r-dt') { const m = String(r.value).split(' '); m.forEach((part, i) => { if (i) val.appendChild(document.createTextNode(' ')); const sp = document.createElement('span'); sp.style.whiteSpace = 'nowrap'; sp.textContent = part; val.appendChild(sp); }); }
+        else val.textContent = r.value;
         row.appendChild(val); row.appendChild(lbl);
         card.appendChild(row);
       });
@@ -2218,7 +2228,13 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       rSoon.classList.add('show'); clearTimeout(soonT);
       soonT = setTimeout(() => rSoon.classList.remove('show'), 1000);
     });
-    document.getElementById('rDownload').addEventListener('click', () => toast('تم تحميل الإيصال'));
+    const dlBtn = document.getElementById('rDownload'); let dlT = 0;
+    dlBtn.addEventListener('click', () => {
+      if (dlBtn.classList.contains('dl-go')) return;
+      dlBtn.classList.add('dl-go');
+      clearTimeout(dlT);
+      dlT = setTimeout(() => { dlBtn.classList.remove('dl-go'); toast('تم تحميل الإيصال'); }, 2250);
+    });
   })();
 
   // ===== تعديل اسم التطبيق: ضغط مطوّل على «بنكي خاص بي» في أي شاشة (اسم + لون + حجم + مكان لكل شاشة على حدة) =====
@@ -3158,6 +3174,12 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #receiptScreen #rShare svg { width:51px; height:51px; }
 #receiptScreen #rDownload svg { width:48px; height:48px; }
 #receiptScreen .rk-foot-img { display:none !important; }
+/* صف التاريخ: التاريخ في سطر والزمن في سطر ثانٍ (كلمتان فقط فيكسر عند المسافة) */
+#receiptScreen #rCard .r-row.r-dt .r-value { width:min-content; max-width:none !important; overflow-wrap:normal; word-break:normal; white-space:normal; text-align:left; }
+/* زر التحميل: حلقة خضراء رفيعة تمتلئ في ثانيتين ثم تختفي */
+#receiptScreen #rDownload .dl-ring { stroke-dasharray:128.8; stroke-dashoffset:128.8; opacity:0; }
+#receiptScreen #rDownload.dl-go .dl-ring { animation:dlFill 2.2s linear forwards; }
+@keyframes dlFill { 0% { stroke-dashoffset:128.8; opacity:1; } 91% { stroke-dashoffset:0; opacity:1; } 100% { stroke-dashoffset:0; opacity:0; } }
 #receiptScreen .rk-foot-txt { left:0; top:1888.6px; width:872px; height:43.5px; line-height:43.5px; text-align:center; direction:rtl; color:#fff; font-size:var(--rs-foot,34px); font-weight:400; white-space:nowrap; pointer-events:none; }
 
 /* ===== نافذة المشاركة (Share Sheet) ===== */
