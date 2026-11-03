@@ -2035,7 +2035,6 @@ html.splash-on, html.splash-on body { background:#fff !important; }
       h.addEventListener('pointerdown', e => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         fired = false; sx = e.clientX; sy = e.clientY; stop();
-        timer = setTimeout(() => { fired = true; openEdit(t); }, 450);
       });
       h.addEventListener('pointermove', e => { if (timer && Math.hypot(e.clientX - sx, e.clientY - sy) > 10) stop(); });
       ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => h.addEventListener(ev, stop));
