@@ -3154,6 +3154,10 @@ html.splash-on, html.splash-on body { background:#fff !important; }
 #receiptScreen #rCard .r-value, #receiptScreen #rCard .r-row.r-wrap .r-value, #receiptScreen #rCard .r-row.r-name .r-value { white-space:normal; overflow:visible; text-overflow:clip; max-width:349px !important; line-height:40.4px; overflow-wrap:anywhere; text-align:left; }
 #receiptScreen #rCard .r-label { font-size:var(--rs-label,33.3px); line-height:40.4px; -webkit-text-stroke:0; }
 #receiptScreen #rCard .r-value { font-size:var(--rs-value,35px); }
+/* سُمك الأرقام مطابق للصورة المرجعية: أبيض نقي + حدّ رفيع يزيد السُمك قليلًا (الصفوف الرقمية فقط، دون الاسم والتعليق) */
+#receiptScreen #rCard .r-row:not([data-rtl="1"]) .r-value { color:#fff; font-weight:500; -webkit-text-stroke:var(--rs-numw,.3px) #fff; paint-order:stroke fill; }
+/* أرقام الحسابات: الفراغات بين المجموعات أضيق قليلًا لتطابق عرض الصورة المرجعية (330 مقابل 338) */
+#receiptScreen #rCard .r-row:nth-child(3) .r-value, #receiptScreen #rCard .r-row:nth-child(4) .r-value { word-spacing:-2.7px; }
 #receiptScreen #rCard .r-row.r-name .r-value { font-size:var(--rs-name,32px); font-weight:500; -webkit-text-stroke:.5px #fff; }
 #receiptScreen #rOk { left:318.1px; top:1521.4px; width:235.8px; height:105.2px; font-size:var(--rs-ok,33px); font-weight:400;
   background:linear-gradient(180deg,#f0f7f2 0%,#e4f1ea 6.7%,#b3d3bc 11.8%,#91bf9b 16.8%,#77b181 21.8%,#68a96f 26.9%,#62a562 31.9%,#5fa35a 37%,#60a554 42%,#63a750 47%,#61a649 54.3%,#499823 54.9%,#509c20 62.2%,#549f1e 67.2%,#5ba31d 72.3%,#62a719 77.3%,#66aa17 82.4%,#6dad18 87.4%,#72b215 92.4%,#75b613 100%);
