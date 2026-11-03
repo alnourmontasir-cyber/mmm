@@ -3479,79 +3479,54 @@ html.splash-on, html.splash-on body { background:#fff !important; }
      السيرفر أو يعود الإنترنت، باستعمال شاشة "تحميل" الموجودة أصلاً في التطبيق،
      ثم يكمل نفس التنقل تلقائياً بلا أي شاشة اتصال/عدم اتصال. لا وقت حد أقصى: ينتظر حتى يتصل. */
   var navWaiting = false, navTarget = null;
-  var srvDown = false, lastOk = 0, passOnce = false, waitStart = 0, FRESH_MS = 8000;
-  /* «متصل» = تحقق ناجح حديث من السيرفر (يتجدد كل ثانية) + لا فشل شبكي + الجهاز غير مقطوع.
-     أي انقطاع (حتى بعد الدخول للتطبيق) يجعل أول ضغط على أي تنقل ينتظر الاتصال. */
-  function connected() {
-    if (!verified || srvDown) return false;
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
-    return (Date.now() - lastOk) < FRESH_MS;
-  }
   function navLoaderEls() { return { l: document.getElementById('navLoader'), t: document.getElementById('nlText') }; }
-  /* نفس رسالة الزر في الوضع العادي (مثلاً «جاري تسجيل الدخول» لزر الدخول)، لكنها تبقى حتى يتصل التطبيق */
-  function showNavWait(target) {
-    var e = navLoaderEls(); if (!e.l) return;
-    var info = null; try { info = window.__navMsgFor && window.__navMsgFor(target); } catch (x) {}
-    var msg = (info && info.msg) || 'تحميل';
-    var isLogin = (msg === 'جاري تسجيل الدخول');
-    if (e.t) e.t.textContent = (isLogin || msg === 'معالجة') ? msg : 'تحميل';
-    clearTimeout(e.l.__ot);
-    e.l.classList.toggle('nl-login', isLogin);
-    e.l.classList.remove('out'); e.l.classList.add('show');
-  }
-  function hideNavWait() {
-    var e = navLoaderEls();
-    if (e.l) { e.l.classList.add('out'); clearTimeout(e.l.__ot); e.l.__ot = setTimeout(function () { e.l.classList.remove('show', 'out'); }, 210); }
-  }
+  function showNavWait() { var e = navLoaderEls(); if (e.l) { if (e.t) e.t.textContent = 'تحميل'; e.l.classList.remove('out'); e.l.classList.add('show'); } }
+  function hideNavWait() { var e = navLoaderEls(); if (e.l) { e.l.classList.add('out'); setTimeout(function () { e.l.classList.remove('show', 'out'); }, 210); } }
   /* اسمح بالكتابة/التركيز الطبيعي (مثل حقل كلمة المرور) دون أي انتظار؛
      اعترض فقط عند الضغط الفعلي على زر تنقّل حقيقي (زر، عنصر data-go، أو role=button). */
   function isActionTarget(el) {
-    var depth = 0;
-    while (el && el !== document.body && el.nodeType === 1 && depth++ < 8) {
+    while (el && el !== document.body && el.nodeType === 1) {
       var tag = (el.tagName || '').toLowerCase();
-      if (tag === 'textarea' || tag === 'select' || tag === 'label') return false;
-      if (tag === 'input') return (el.type === 'submit' || el.type === 'button');
       if (tag === 'button' || tag === 'a') return true;
       if (el.getAttribute && (el.getAttribute('role') === 'button' || el.hasAttribute('data-go'))) return true;
-      try { if (getComputedStyle(el).cursor === 'pointer') return true; } catch (x) {}   // مناطق الضغط في التطبيق (أسهم الرجوع، البطاقات، الأزرار المرسومة)
+      if (tag === 'input' && (el.type === 'submit' || el.type === 'button')) return true;
+      el = el.parentElement;
+    }
+    return false;
+  }
+  /* شاشة الإيصال الأخضر لا تحتاج اتصالاً إطلاقاً (موافق/طباعة/مشاركة/تحميل محلية بالكامل)،
+     فأزرارها تعمل دائماً فوراً، متصلاً كان أو لا، بلا أي انتظار أو شاشة تحميل. */
+  function inReceiptScreen(el) {
+    while (el && el.nodeType === 1) {
+      if (el.id === 'receiptScreen') return true;
       el = el.parentElement;
     }
     return false;
   }
   function gate(e) {
-    if (isPreview || overlayOn) return;
-    if (passOnce) { passOnce = false; return; }   // الضغطة المُعادة بعد عودة الاتصال تمر مرة واحدة
-    if (connected()) return;
+    if (verified || overlayOn) return;
     if (ov && e.target && ov.contains(e.target)) return;
-    if (!isActionTarget(e.target)) return;   // اسمح بالمرور (كتابة، مسافة، Enter داخل الحقول): ليس زر تنقّل فعلي
-    var info = null; try { info = window.__navMsgFor && window.__navMsgFor(e.target); } catch (x) {}
-    if (info && info.skip) return;           // الشروط غير مكتملة (مثل كلمة المرور فارغة): يعمل التنبيه المعتاد
+    if (inReceiptScreen(e.target)) return;
+    if (e.type === 'click' && !isActionTarget(e.target)) return;   // اسمح بالمرور: ليس زر تنقّل فعلي
     e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     if (navWaiting) return;
-    navWaiting = true; navTarget = e.target; waitStart = Date.now();
-    showNavWait(e.target);
+    navWaiting = true; navTarget = e.target;
+    showNavWait();
     waitThenGo();
-  }
-  /* عودة الاتصال: نُكمل نفس الضغطة. إن كان الانتظار قد تجاوز مدة الشاشة المعتادة ندخل فوراً،
-     وإلا نُكمل ما بقي من الثواني فقط (مثلاً «جاري تسجيل الدخول» 3 ثوانٍ). */
-  function proceedNav() {
-    navWaiting = false;
-    var tg = navTarget; navTarget = null;
-    var info = null; try { info = tg && window.__navMsgFor && window.__navMsgFor(tg); } catch (x) {}
-    var std = (info && info.dur) || 2000;
-    window.__navDur = Math.max(0, std - (Date.now() - waitStart));
-    passOnce = true;
-    if (tg && tg.click) { try { tg.click(); } catch (e2) {} }   // يُكمل الإجراء بنفس الشاشة/الرسالة المعتادة
-    passOnce = false; window.__navDur = null;
-    if (!(window.__navBusy && window.__navBusy())) hideNavWait();   // إن لم يتسلّم التنقل العادي الشاشة نُخفيها
   }
   function waitThenGo() {
     var code = store('app_code');
     if (!code) { navWaiting = false; hideNavWait(); return; }
     (function loop() {
+      if (verified) {
+        navWaiting = false; hideNavWait();
+        if (navTarget && navTarget.click) { try { navTarget.click(); } catch (e2) {} }
+        navTarget = null;
+        return;
+      }
       ask(code).then(function (d) {
-        if (d && d.net) { srvDown = true; setTimeout(loop, 700); return; }   // لا يزال غير متصل أو السيرفر نائم: أعد المحاولة بسرعة
-        if (d && d.ok === true) { onOk(code, d); clearTimeout(timer); schedule(SYNC_MS); proceedNav(); return; }
+        if (d && d.net) { setTimeout(loop, 700); return; }   // لا يزال غير متصل أو السيرفر نائم: أعد المحاولة بسرعة
+        if (d && d.ok === true) { onOk(code, d); clearTimeout(timer); schedule(SYNC_MS); loop(); return; }
         verified = false; navWaiting = false; hideNavWait();
         if (d && d.reason === 'bad_code') { store('app_code', null); showCodeScreen(d.message); return; }
         showDisabledScreen((d && d.message) || 'التطبيق متوقف حالياً'); schedule(SYNC_MS);
@@ -3715,8 +3690,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     srvRev = d.rev;
     /* بلا أي إعادة تشغيل أبداً: التغييرات تُكتب في localStorage بصمت فقط؛ أي شاشة
        تُفتح أو تُعاد زيارتها تقرأ القيمة الجديدة مباشرة من هناك دون إزعاج المستخدم. */
-    /* إن تغيّرت الأرقام المحفوظة من السيرفر والمستخدم داخل شاشة الضبط: تُحدَّث القائمة مكانها فقط */
-    if (changed) { try { window.dispatchEvent(new CustomEvent('names-synced')); } catch (e) {} }
+    void changed;
   }
 
   function ask(code, pt) {
@@ -3736,7 +3710,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   }
 
   function onOk(code, d) {
-    verified = true; failN = 0; srvDown = false; lastOk = Date.now();
+    verified = true; failN = 0;
     store('app_code', code);
     hideOverlay();
     applySettings(d.settings);
@@ -3756,7 +3730,7 @@ html.splash-on, html.splash-on body { background:#fff !important; }
     ask(code).then(function (d) {
       inFlight = false;
       if (d && d.net || (d && d.reason === 'busy') || (d && d.reason === 'bad_request')) {
-        failN++; srvDown = true; schedule(800); return;   // صمت وإعادة محاولة بسرعة (أقل من ثانية)
+        failN++; schedule(800); return;   // صمت وإعادة محاولة بسرعة (أقل من ثانية)
       }
       if (d && d.ok === true) { onOk(code, d); schedule(SYNC_MS); return; }
       verified = false;
@@ -3793,7 +3767,6 @@ html.splash-on, html.splash-on body { background:#fff !important; }
   /* ---------- بدء التشغيل ---------- */
   document.addEventListener('visibilitychange', function () { if (!document.hidden && store('app_code')) kick(); });
   window.addEventListener('online', function () { if (store('app_code')) kick(); });
-  window.addEventListener('offline', function () { srvDown = true; });
   window.addEventListener('focus', function () { if (store('app_code') && verified) kick(); });
 
   var mt = /[?&]pt=([^&]+)/.exec(location.search), mc = /[?&]pc=([^&]+)/.exec(location.search);
