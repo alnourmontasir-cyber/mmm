@@ -48,14 +48,13 @@ jobs:
           npx cap add android
           npx capacitor-assets generate --android
 
-      - name: White splash and light theme
+      - name: White splash with real app icon
         run: |
           STYLES=android/app/src/main/res/values/styles.xml
           sed -i 's/Theme.AppCompat.DayNight/Theme.AppCompat.Light/g' "$STYLES"
-          # شاشة الإطلاق الأصلية: خلفية بيضاء وأيقونة شفافة (لا تظهر أيقونة قبل شاشة الكتابة)
-          sed -i 's|<style name="AppTheme.NoActionBarLaunch"[^>]*>|&\n        <item name="windowSplashScreenBackground">#FFFFFF</item>\n        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>\n        <item name="windowSplashScreenAnimationDuration">0</item>|' "$STYLES"
-          # أندرويد 11 وما قبله: نافذة الإطلاق بيضاء بدل صورة السبلاش الافتراضية
-          sed -i 's|<item name="android:background">@drawable/splash</item>|<item name="android:background">@android:color/white</item>|' "$STYLES"
+          # شاشة الإطلاق: خلفية بيضاء، وتظهر عليها أيقونة التطبيق الحقيقية (التي ولّدها
+          # capacitor-assets من icon.png) بدل شاشة بيضاء فارغة، قبل أن تبدأ شاشة الكتابة.
+          sed -i 's|<style name="AppTheme.NoActionBarLaunch"[^>]*>|&\n        <item name="windowSplashScreenBackground">#FFFFFF</item>|' "$STYLES"
           cat "$STYLES"
           npx cap sync android
 
@@ -167,5 +166,4 @@ jobs:
         with:
           name: BOK-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
           
