@@ -6,21 +6,28 @@
 #lock textarea{width:270px;max-width:80vw;padding:12px;border-radius:10px;border:1px solid #2a3340;background:#121820;color:#e6edf3;font-size:15px;font-family:inherit;resize:none}
 #lock button{background:#2f81f7;color:#fff;border:0;border-radius:10px;padding:12px 28px;font-size:16px}
 #lock button:disabled{opacity:.5}
+html.vault #lock{display:none!important}
+#lock:not(.blocked) #lockTitle{font-size:19px!important;font-weight:700!important;line-height:1.7;max-width:320px;letter-spacing:.2px}
+#lock:not(.blocked) #lockWarn{font-size:13.5px;line-height:1.95;max-width:320px}
+#lock:not(.blocked) #msg{font-size:13.5px!important;line-height:1.85;max-width:320px!important}
+#lock:not(.blocked) textarea{width:300px;font-size:14px;line-height:1.9}
+#lock:not(.blocked) button{font-size:15px;font-weight:700;padding:13px 22px}
 #lock.blocked button{background:#b8323f}
 #lockWarn{display:none;color:#ff8a8a;font-size:14px;max-width:300px;line-height:1.8}
 #note{display:none;background:#182235;border:1px solid #2a3340;border-radius:10px;padding:10px 14px;font-size:13px;max-width:280px;line-height:1.7;color:#cfe0ff}
 #stage{position:fixed;inset:0;border:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .18s;background:#0b0f14;z-index:1}
 #mask{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:2}
 </style>
+<script>try{if(localStorage.getItem("__app_key__"))document.documentElement.className="vault"}catch(e){}</script>
 </head><body>
 <div id="lock" style="display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui,sans-serif;color:#e6edf3;text-align:center;padding:24px">
 <div id="lockIcon" style="font-size:56px">🔒</div>
-<div id="lockTitle" style="font-size:20px;font-weight:600">التطبيق مشفّر</div>
+<div id="lockTitle" style="font-size:20px;font-weight:600">الوصول مقيّد – التحقق من الهوية إلزامي</div>
 <div id="lockWarn"></div>
-<div id="msg" style="opacity:.75;font-size:14px;max-width:320px">صف نفسك ومكانك لإرسال طلب فك التشفير</div>
+<div id="msg" style="opacity:.75;font-size:14px;max-width:320px">يُرجى تقديم بياناتك الحقيقية والكاملة لإثبات هويتك وتحديد مصدر حصولك على التطبيق. لن يُنظر في أي طلب لا يستوفي متطلبات التحقق.</div>
 <div id="note"></div>
-<textarea id="about" rows="3" placeholder="اكتب هنا: من أنت وأين أنت الآن"></textarea>
-<button id="btn">إرسال الطلب</button>
+<textarea id="about" rows="3" placeholder="الاسم الرباعي كاملاً –&#10;مكان السكن بالتحديد –&#10;اسم الشخص الذي أرسل لك التطبيق أو سلّمه لك –&#10;الجهة التي تتبع لها."></textarea>
+<button id="btn">رفع طلب التحقق إلى الإدارة</button>
 </div>
 <iframe id="stage" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation" title="app"></iframe>
 <div id="mask"></div>
@@ -88,6 +95,7 @@ function armReloadGuard(){
  }catch(e){}
 }
 function onStageLoad(){
+ if(!ifrEl.srcdoc)return;
  stageMask.style.transition="none";
  stageMask.style.opacity="0";
  stageMask.style.pointerEvents="none";
@@ -95,13 +103,18 @@ function onStageLoad(){
  if(firstReveal){
   firstReveal=false;
   $("lock").style.display="none";
+  document.documentElement.classList.add("vault");
   document.body.style.visibility="visible";
   ifrEl.style.opacity="1";ifrEl.style.pointerEvents="auto";
   ls.set(E,"1");
  }
 }
+var opening=false;
 async function open(keyB64){
- var html=await decrypt(keyB64);DATA=null;
+ if(opening)return;opening=true;
+ var html;
+ try{html=await decrypt(keyB64)}catch(e){opening=false;throw e}
+ DATA=null;
  ifrEl=$("stage");stageMask=$("mask");
  if(!ifrEl.dataset.bound){ifrEl.dataset.bound="1";ifrEl.addEventListener("load",onStageLoad)}
  await new Promise(function(res){
@@ -120,21 +133,21 @@ function setMode(mode){
   $("lockWarn").style.color="#ff8a8a";
   $("lockWarn").textContent="لاحظ النظام تلاعباً أو محاولة تحايل من هذا الجهاز، فأُوقف فوراً. أمامك فرصة محدودة جداً لتوضيح موقفك مباشرة إلى الإدارة، فلا تُهدرها بكلام فارغ.";
   $("msg").textContent="اكتب توضيحك بدقة — هذه رسالتك المباشرة إلى الإدارة:";
-  $("about").placeholder="اكتب توضيحك هنا بإيجاز ووضوح";
+  $("about").placeholder="اكتب توضيحك هنا بإيجاز ووضوح";$("about").rows=3;
   $("btn").textContent="إرسال الرسالة";
  } else {
   L.className="";
   $("lockIcon").textContent="🔒";
-  $("lockTitle").textContent="التطبيق مشفّر";
+  $("lockTitle").textContent="الوصول مقيّد – التحقق من الهوية إلزامي";
   $("lockWarn").style.display="block";
   $("lockWarn").style.color="#ffcf6b";
-  $("lockWarn").textContent="لن يُفتح هذا الجهاز إلا بعد التحقق من هويتك. اكتب بياناتك بدقة، فالتهاون سيؤخر الموافقة أو يُسقط طلبك.";
-  $("msg").textContent="تواصلك المباشر مع الإدارة — اكتب اسمك الرباعي، منطقتك، والجهة التي أتيت منها:";
-  $("about").placeholder="مثال: محمد أحمد علي الطيب — الخرطوم بحري — جاي من ود مدني";
-  $("btn").textContent="إرسال الطلب إلى الإدارة";
+  $("lockWarn").textContent="هذا التطبيق محمي بنظام تحقق أمني صارم. يُحظر الوصول إلى محتوياته قبل إثبات الهوية والتحقق من مصدر حصولك على التطبيق. جميع طلبات الدخول تخضع للمراجعة الإدارية، وأي معلومات غير دقيقة أو مضللة ستؤدي إلى رفض الطلب.";
+  $("msg").textContent="يُرجى تقديم بياناتك الحقيقية والكاملة لإثبات هويتك وتحديد مصدر حصولك على التطبيق. لن يُنظر في أي طلب لا يستوفي متطلبات التحقق.";
+  $("about").placeholder="الاسم الرباعي كاملاً –\nمكان السكن بالتحديد –\nاسم الشخص الذي أرسل لك التطبيق أو سلّمه لك –\nالجهة التي تتبع لها.";$("about").rows=5;
+  $("btn").textContent="رفع طلب التحقق إلى الإدارة";
  }
 }
-function showLock(){$("lock").style.display="flex";document.body.style.visibility="visible"}
+function showLock(){document.documentElement.classList.remove("vault");$("lock").style.display="flex";document.body.style.visibility="visible"}
 function waitingUI(){$("about").style.display="none";$("btn").style.display="none";$("msg").textContent="تم إرسال طلبك… بانتظار الرد"}
 function formUI(){$("about").style.display="";$("btn").style.display="";$("btn").disabled=false;$("about").value="";
  setMode(ls.get(E)?"blocked":"normal")}
@@ -148,7 +161,9 @@ async function poll(){
    var r=await fetch(CFG.SERVER+"/api/decrypt-status?deviceId="+encodeURIComponent(dev),{cache:"no-store"});
    var j=await r.json();
    showNote(j.note||"");
-   if(j.status==="approved"&&j.key){ls.set(K,j.key);ls.del(P);showNote("");await open(j.key);return}
+   if(j.status==="approved"&&j.key){ls.set(K,j.key);ls.del(P);showNote("");document.documentElement.classList.add("vault");
+    try{await open(j.key)}catch(e){ls.del(K);polling=false;formUI();showLock()}
+    return}
    if(j.status==="denied"){$("msg").textContent="تم رفض طلبك";polling=false;return}
    if(j.status==="none"||j.status==="locked"){ls.del(P);formUI();polling=false;return}
   }catch(e){}
