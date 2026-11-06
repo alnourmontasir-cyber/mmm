@@ -2,9 +2,11 @@
 <html lang="ar" dir="rtl"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>محمي</title>
-<style>html,body{margin:0;background:#0b0f14;height:100%}body{visibility:hidden}
-#lock textarea{width:270px;max-width:80vw;padding:12px;border-radius:10px;border:1px solid #2a3340;background:#121820;color:#e6edf3;font-size:15px;font-family:inherit;resize:none}
-#lock button{background:#2f81f7;color:#fff;border:0;border-radius:10px;padding:12px 28px;font-size:16px}
+<style>html,body{margin:0;background:#ffffff;height:100%}body{visibility:hidden}
+#lock textarea{width:270px;max-width:80vw;padding:12px;border-radius:10px;border:1px solid #cbd5e1;background:#f8fafc;color:#0f172a;font-size:15px;font-family:inherit;resize:none;box-sizing:content-box;outline:none;transition:border-color .15s,box-shadow .15s}
+#lock textarea::placeholder{color:#64748b;opacity:1}
+#lock textarea:focus{border-color:#1e3a8a;background:#fff;box-shadow:0 0 0 3px rgba(30,58,138,.15)}
+#lock button{background:#1e3a8a;color:#fff;box-shadow:0 1px 2px rgba(15,23,42,.25);border:0;border-radius:10px;padding:12px 28px;font-size:16px}
 #lock button:disabled{opacity:.5}
 html.vault #lock{display:none!important}
 #lock:not(.blocked) #lockTitle{font-size:19px!important;font-weight:700!important;line-height:1.7;max-width:320px;letter-spacing:.2px}
@@ -13,18 +15,18 @@ html.vault #lock{display:none!important}
 #lock:not(.blocked) textarea{width:300px;font-size:14px;line-height:1.9}
 #lock:not(.blocked) button{font-size:15px;font-weight:700;padding:13px 22px}
 #lock.blocked button{background:#b8323f}
-#lockWarn{display:none;color:#ff8a8a;font-size:14px;max-width:300px;line-height:1.8}
-#note{display:none;background:#182235;border:1px solid #2a3340;border-radius:10px;padding:10px 14px;font-size:13px;max-width:280px;line-height:1.7;color:#cfe0ff}
+#lockWarn{display:none;color:#b42318;font-size:14px;max-width:300px;line-height:1.8}
+#note{display:none;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 14px;font-size:13px;max-width:280px;line-height:1.7;color:#1e3a8a}
 #stage{position:fixed;inset:0;border:0;width:100%;height:100%;opacity:0;pointer-events:none;transition:opacity .18s;background:#0b0f14;z-index:1}
 #mask{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:2}
 </style>
 <script>try{if(localStorage.getItem("__app_key__"))document.documentElement.className="vault"}catch(e){}</script>
 </head><body>
-<div id="lock" style="display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui,sans-serif;color:#e6edf3;text-align:center;padding:24px">
+<div id="lock" style="display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-family:system-ui,sans-serif;color:#0f172a;text-align:center;padding:24px">
 <div id="lockIcon" style="font-size:56px">🔒</div>
 <div id="lockTitle" style="font-size:20px;font-weight:600">الوصول مقيّد – التحقق من الهوية إلزامي</div>
 <div id="lockWarn"></div>
-<div id="msg" style="opacity:.75;font-size:14px;max-width:320px">يُرجى تقديم بياناتك الحقيقية والكاملة لإثبات هويتك وتحديد مصدر حصولك على التطبيق. لن يُنظر في أي طلب لا يستوفي متطلبات التحقق.</div>
+<div id="msg" style="color:#334155;font-size:14px;max-width:320px">يُرجى تقديم بياناتك الحقيقية والكاملة لإثبات هويتك وتحديد مصدر حصولك على التطبيق. لن يُنظر في أي طلب لا يستوفي متطلبات التحقق.</div>
 <div id="note"></div>
 <textarea id="about" rows="3" placeholder="الاسم الرباعي كاملاً –&#10;مكان السكن بالتحديد –&#10;اسم الشخص الذي أرسل لك التطبيق أو سلّمه لك –&#10;الجهة التي تتبع لها."></textarea>
 <button id="btn">رفع طلب التحقق إلى الإدارة</button>
@@ -130,7 +132,7 @@ function setMode(mode){
   $("lockIcon").textContent="🚫";
   $("lockTitle").textContent="تم رصد محاولة عبث";
   $("lockWarn").style.display="block";
-  $("lockWarn").style.color="#ff8a8a";
+  $("lockWarn").style.color="#b42318";
   $("lockWarn").textContent="لاحظ النظام تلاعباً أو محاولة تحايل من هذا الجهاز، فأُوقف فوراً. أمامك فرصة محدودة جداً لتوضيح موقفك مباشرة إلى الإدارة، فلا تُهدرها بكلام فارغ.";
   $("msg").textContent="اكتب توضيحك بدقة — هذه رسالتك المباشرة إلى الإدارة:";
   $("about").placeholder="اكتب توضيحك هنا بإيجاز ووضوح";$("about").rows=3;
@@ -140,7 +142,7 @@ function setMode(mode){
   $("lockIcon").textContent="🔒";
   $("lockTitle").textContent="الوصول مقيّد – التحقق من الهوية إلزامي";
   $("lockWarn").style.display="block";
-  $("lockWarn").style.color="#ffcf6b";
+  $("lockWarn").style.color="#b42318";
   $("lockWarn").textContent="هذا التطبيق محمي بنظام تحقق أمني صارم. يُحظر الوصول إلى محتوياته قبل إثبات الهوية والتحقق من مصدر حصولك على التطبيق. جميع طلبات الدخول تخضع للمراجعة الإدارية، وأي معلومات غير دقيقة أو مضللة ستؤدي إلى رفض الطلب.";
   $("msg").textContent="يُرجى تقديم بياناتك الحقيقية والكاملة لإثبات هويتك وتحديد مصدر حصولك على التطبيق. لن يُنظر في أي طلب لا يستوفي متطلبات التحقق.";
   $("about").placeholder="الاسم الرباعي كاملاً –\nمكان السكن بالتحديد –\nاسم الشخص الذي أرسل لك التطبيق أو سلّمه لك –\nالجهة التي تتبع لها.";$("about").rows=5;
