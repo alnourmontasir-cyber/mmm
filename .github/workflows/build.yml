@@ -28,15 +28,18 @@ jobs:
           test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
-          # خط Cairo + خط IBM Plex Sans Arabic داخل التطبيق (يعمل بدون إنترنت)
+          # خط Cairo + خط Mada (متغير، يدعم وزن 450) داخل التطبيق (يعمل بدون إنترنت)
           mkdir -p cairo-tmp www/fonts
-          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5 @fontsource/ibm-plex-sans-arabic@5)
+          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5 @fontsource-variable/mada@5)
           F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
           test -s "$F" || { echo "ERROR: Cairo font missing"; exit 1; }
           cp "$F" www/fonts/cairo.woff2
-          T=$(ls cairo-tmp/node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-400-normal.woff2 2>/dev/null || ls cairo-tmp/node_modules/@fontsource/ibm-plex-sans-arabic/files/ibm-plex-sans-arabic-arabic-*400-normal.woff2 | head -1)
-          test -s "$T" || { echo "ERROR: IBM Plex Sans Arabic font missing"; ls cairo-tmp/node_modules/@fontsource/ibm-plex-sans-arabic/files | head -50; exit 1; }
-          cp "$T" www/fonts/ibm-plex-sans-arabic.woff2
+          T=$(ls cairo-tmp/node_modules/@fontsource-variable/mada/files/mada-arabic-wght-normal.woff2 2>/dev/null || ls cairo-tmp/node_modules/@fontsource-variable/mada/files/mada-arabic-*wght-normal.woff2 | head -1)
+          test -s "$T" || { echo "ERROR: Mada font missing"; ls cairo-tmp/node_modules/@fontsource-variable/mada/files | head -50; exit 1; }
+          # تثبيت الخط المتغير على وزن 450 وحفظه باسم tajawal.woff2 حتى لا يحتاج index.html لأي تعديل
+          pip install fonttools brotli
+          fonttools varLib.instancer "$T" wght=450 -o www/fonts/tajawal.woff2
+          test -s www/fonts/tajawal.woff2 || { echo "ERROR: Mada instancing failed"; exit 1; }
           convert icon.png -resize 1024x1024^ -gravity center -background white -extent 1024x1024 assets/icon.png
 
       - name: Create Android project
