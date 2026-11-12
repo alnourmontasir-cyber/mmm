@@ -28,15 +28,36 @@ jobs:
           test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
-          # خط Cairo + خط تجوال (Tajawal) داخل التطبيق (يعمل بدون إنترنت)
+          # خط Cairo + خط IBM Plex Sans Arabic (Light و Bold) داخل التطبيق (يعمل بدون إنترنت)
           mkdir -p cairo-tmp www/fonts
-          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5 @fontsource/tajawal@5)
+          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5 @fontsource/ibm-plex-sans-arabic@5)
           F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
           test -s "$F" || { echo "ERROR: Cairo font missing"; exit 1; }
           cp "$F" www/fonts/cairo.woff2
-          T=$(ls cairo-tmp/node_modules/@fontsource/tajawal/files/tajawal-arabic-500-normal.woff2 2>/dev/null || ls cairo-tmp/node_modules/@fontsource/tajawal/files/tajawal-arabic-*-500-normal.woff2 | head -1)
-          test -s "$T" || { echo "ERROR: Tajawal font missing"; ls cairo-tmp/node_modules/@fontsource/tajawal/files | head -50; exit 1; }
-          cp "$T" www/fonts/tajawal.woff2
+          P=cairo-tmp/node_modules/@fontsource/ibm-plex-sans-arabic/files
+          L=$(ls $P/ibm-plex-sans-arabic-arabic-300-normal.woff2 2>/dev/null | head -1)
+          B=$(ls $P/ibm-plex-sans-arabic-arabic-700-normal.woff2 2>/dev/null | head -1)
+          test -s "$L" && test -s "$B" || { echo "ERROR: IBM Plex Sans Arabic font files missing"; ls $P | head -50; exit 1; }
+          cp "$L" www/fonts/plex-light.woff2
+          cp "$B" www/fonts/plex-bold.woff2
+          ls -la www/fonts
+          # حقن الخط داخل www/index.html فقط (بدون لمس index.html الأصلي)
+          python3 - <<'PY'
+          style = (
+              "<style id=\"plex-font\">"
+              "@font-face{font-family:'PlexAr';src:url('fonts/plex-light.woff2') format('woff2');"
+              "font-weight:100 500;font-style:normal;font-display:swap}"
+              "@font-face{font-family:'PlexAr';src:url('fonts/plex-bold.woff2') format('woff2');"
+              "font-weight:600 900;font-style:normal;font-display:swap}"
+              "html,body,*{font-family:'PlexAr','Cairo',sans-serif !important}"
+              "</style>"
+          )
+          p = "www/index.html"
+          s = open(p, encoding="utf-8").read()
+          s = s.replace("</head>", style + "</head>", 1) if "</head>" in s else style + s
+          open(p, "w", encoding="utf-8").write(s)
+          print("font injected into www/index.html")
+          PY
           convert icon.png -resize 1024x1024^ -gravity center -background white -extent 1024x1024 assets/icon.png
 
       - name: Create Android project
@@ -166,5 +187,3 @@ jobs:
         with:
           name: BOK-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
-
-          
