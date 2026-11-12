@@ -28,28 +28,25 @@ jobs:
           test -s icon.png || { echo "ERROR: icon.png is missing or empty"; exit 1; }
           mkdir -p www assets
           cp index.html www/index.html
-          # خط Cairo + خط IBM Plex Sans Arabic (Light و Bold) داخل التطبيق (يعمل بدون إنترنت)
-          mkdir -p cairo-tmp www/fonts
-          (cd cairo-tmp && npm init -y >/dev/null && npm install @fontsource/cairo@5 @fontsource/ibm-plex-sans-arabic@5)
-          F=$(ls cairo-tmp/node_modules/@fontsource/cairo/files/cairo-arabic-400-normal.woff2)
-          test -s "$F" || { echo "ERROR: Cairo font missing"; exit 1; }
-          cp "$F" www/fonts/cairo.woff2
-          P=cairo-tmp/node_modules/@fontsource/ibm-plex-sans-arabic/files
-          L=$(ls $P/ibm-plex-sans-arabic-arabic-300-normal.woff2 2>/dev/null | head -1)
-          B=$(ls $P/ibm-plex-sans-arabic-arabic-700-normal.woff2 2>/dev/null | head -1)
-          test -s "$L" && test -s "$B" || { echo "ERROR: IBM Plex Sans Arabic font files missing"; ls $P | head -50; exit 1; }
-          cp "$L" www/fonts/plex-light.woff2
-          cp "$B" www/fonts/plex-bold.woff2
+          # خط Noto Kufi Arabic (Light و Bold) داخل التطبيق (يعمل بدون إنترنت)
+          mkdir -p font-tmp www/fonts
+          (cd font-tmp && npm init -y >/dev/null && npm install @fontsource/noto-kufi-arabic@5)
+          P=font-tmp/node_modules/@fontsource/noto-kufi-arabic/files
+          L=$(ls $P/noto-kufi-arabic-arabic-300-normal.woff2 2>/dev/null | head -1)
+          B=$(ls $P/noto-kufi-arabic-arabic-700-normal.woff2 2>/dev/null | head -1)
+          test -s "$L" && test -s "$B" || { echo "ERROR: Noto Kufi Arabic font files missing"; ls $P | head -50; exit 1; }
+          cp "$L" www/fonts/noto-light.woff2
+          cp "$B" www/fonts/noto-bold.woff2
           ls -la www/fonts
           # حقن الخط داخل www/index.html فقط (بدون لمس index.html الأصلي)
           python3 - <<'PY'
           style = (
-              "<style id=\"plex-font\">"
-              "@font-face{font-family:'PlexAr';src:url('fonts/plex-light.woff2') format('woff2');"
+              "<style id=\"noto-font\">"
+              "@font-face{font-family:'NotoAr';src:url('fonts/noto-light.woff2') format('woff2');"
               "font-weight:100 500;font-style:normal;font-display:swap}"
-              "@font-face{font-family:'PlexAr';src:url('fonts/plex-bold.woff2') format('woff2');"
+              "@font-face{font-family:'NotoAr';src:url('fonts/noto-bold.woff2') format('woff2');"
               "font-weight:600 900;font-style:normal;font-display:swap}"
-              "html,body,*{font-family:'PlexAr','Cairo',sans-serif !important}"
+              "html,body,*{font-family:'NotoAr',sans-serif !important}"
               "</style>"
           )
           p = "www/index.html"
