@@ -36,8 +36,20 @@ jobs:
           test -s "$T" || { echo "ERROR: Almarai 300 font file missing"; ls $P | head -50; exit 1; }
           cp "$T" www/fonts/almarai-300.woff2
           ls -la www/fonts
-          # حقن الخط داخل www/index.html فقط (بدون لمس index.html الأصلي)
+          # حذف Tajawal وحقن Almarai داخل www/index.html فقط (بدون لمس index.html الأصلي)
           python3 - <<'PY'
+          import re
+          p = "www/index.html"
+          s = open(p, encoding="utf-8").read()
+
+          # حذف خط Tajawal القديم من نسخة www فقط (index.html الأصلي لا يُمس)
+          s, n_link = re.subn(r'<link[^>]*tajawal[^>]*>', '', s, flags=re.I)
+          s, n_face = re.subn(r'@font-face\s*\{[^}]*tajawal[^}]*\}', '', s, flags=re.I)
+          s, n_imp = re.subn(r'@import[^;]*tajawal[^;]*;', '', s, flags=re.I)
+          s, n_ref = re.subn(r'tajawal', 'AlmaraiAr', s, flags=re.I)
+          print("Tajawal removed: links=%d font-face=%d imports=%d refs->AlmaraiAr=%d" % (n_link, n_face, n_imp, n_ref))
+
+          # حقن خط Almarai
           style = (
               "<style id=\"almarai-font\">"
               "@font-face{font-family:'AlmaraiAr';src:url('fonts/almarai-300.woff2') format('woff2');"
@@ -45,8 +57,6 @@ jobs:
               "html,body,*{font-family:'AlmaraiAr',sans-serif !important;font-weight:300 !important}"
               "</style>"
           )
-          p = "www/index.html"
-          s = open(p, encoding="utf-8").read()
           s = s.replace("</head>", style + "</head>", 1) if "</head>" in s else style + s
           open(p, "w", encoding="utf-8").write(s)
           print("font injected into www/index.html")
@@ -180,3 +190,4 @@ jobs:
         with:
           name: BOK-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          
