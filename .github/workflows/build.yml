@@ -125,14 +125,29 @@ jobs:
                   getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
                       @Override
                       public void handleOnBackPressed() {
-                          try {
-                              getBridge().getWebView().evaluateJavascript("if(window.goBack){window.goBack();}", null);
-                          } catch (Exception e) {
-                              e.printStackTrace();
-                          }
+                          performBack();
                       }
                   });
                   hideBars();
+              }
+
+              // يستدعي goBack في صفحة الويب (عبر الجسر الموجود في صفحة القفل، الذي يُمرّرها
+              // لنافذة اللعبة الداخلية) وينتظر نتيجتها: true يعني أُغلقت شاشة فرعية داخل
+              // التطبيق، وfalse يعني أننا في الشاشة الرئيسية ولا يوجد ما نرجع إليه، فيُغلق
+              // النشاط (يخرج من التطبيق) تماماً كما يُتوقع من زر/إيماءة الرجوع في أي تطبيق آخر.
+              private void performBack() {
+                  try {
+                      getBridge().getWebView().evaluateJavascript(
+                          "(function(){try{return !!(window.goBack && window.goBack());}catch(e){return false;}})();",
+                          value -> {
+                              if ("false".equals(value)) {
+                                  finish();
+                              }
+                          }
+                      );
+                  } catch (Exception e) {
+                      e.printStackTrace();
+                  }
               }
 
               private boolean handleEdgeSwipe(android.view.MotionEvent event) {
@@ -153,7 +168,7 @@ jobs:
                           boolean fromRight = swipeStartX > (screenWidth - edgeThreshold) && deltaX < -120 && deltaY < 180 && elapsed < 600;
                           if (fromLeft || fromRight) {
                               try {
-                                  getBridge().getWebView().evaluateJavascript("if(window.goBack){window.goBack();}", null);
+                                  performBack();
                               } catch (Exception e) {
                                   e.printStackTrace();
                               }
@@ -196,5 +211,6 @@ jobs:
         with:
           name: BOK-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
 
           
